@@ -5,7 +5,7 @@ import { FormScrollView } from "@/components/ui/screen-containers/form-scroll-vi
 import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
 
 describe("screen scroll containers", () => {
-  test("standard scroll views use shared keyboard-aware defaults", () => {
+  test("standard scroll views use shared inset and indicator defaults", () => {
     const { getByTestId } = renderWithTestProviders(
       <StandardScrollView testID="standard-scroll">
         <Text>Content</Text>
@@ -15,9 +15,7 @@ describe("screen scroll containers", () => {
     expect(getByTestId("standard-scroll").props).toEqual(
       expect.objectContaining({
         automaticallyAdjustsScrollIndicatorInsets: true,
-        bottomOffset: 24,
         contentInsetAdjustmentBehavior: "automatic",
-        mode: "layout",
         showsHorizontalScrollIndicator: false,
         showsVerticalScrollIndicator: false,
       }),

@@ -181,23 +181,6 @@ jest.mock("heroui-native", () => {
   };
 });
 
-jest.mock("react-native-keyboard-controller", () => {
-  const React = require("react");
-  const { ScrollView, View } = require("react-native");
-  const KeyboardAwareScrollView = React.forwardRef((props: Record<string, unknown>, ref: unknown) =>
-    React.createElement(ScrollView, { ...props, ref }),
-  );
-  KeyboardAwareScrollView.displayName = "MockKeyboardAwareScrollView";
-
-  return {
-    KeyboardAwareScrollView,
-    KeyboardProvider: ({ children }: { children?: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, children),
-    KeyboardStickyView: ({ children, ...props }: { children?: React.ReactNode }) =>
-      React.createElement(View, props, children),
-  };
-});
-
 jest.mock("react-native-worklets", () => ({
   __esModule: true,
   callMicrotasks: jest.fn(),

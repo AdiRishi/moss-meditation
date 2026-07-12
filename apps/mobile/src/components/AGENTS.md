@@ -18,11 +18,9 @@ HeroUI Native: `Card` extends `Surface`, which applies base padding. To remove d
 
 ## Safe Areas
 
-`StandardView`, `StandardScrollView`, and `FormScrollView` own screen safe-area handling through `useScreenContainerInsets`. Keep scroll-view keyboard/safe-area mechanics centralized in `ScreenScrollViewBase`.
+`StandardView`, `StandardScrollView`, and `FormScrollView` own screen safe-area handling through `useScreenContainerInsets`. Keep scroll-view and safe-area mechanics centralized in `ScreenScrollViewBase`.
 
 Do not wrap these containers in `SafeAreaView` or apply Uniwind safe-area utilities (`py-safe`, `pt-safe-*`, `pb-safe-*`). Use `edgeToEdge` only for intentional full-bleed screens, and put content spacing in `contentContainerClassName`.
-
-`react-native-keyboard-controller` is intentionally excluded from Expo's install-version check because the shared keyboard-aware containers use the newer compatible 1.21.x patch. Keep the exclusion narrow and revalidate it when Expo is upgraded.
 
 ## Comments
 

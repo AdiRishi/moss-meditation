@@ -10,7 +10,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { HeroUINativeProvider } from "heroui-native";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AppProviders } from "@/components/app-providers";
@@ -30,16 +29,14 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <KeyboardProvider>
-          <HeroUINativeProvider>
-            <GenericErrorScreen
-              title="Something went wrong"
-              message="Zen ran into an unexpected issue. Your practice data remains on this device."
-              errorDetails={{ status: error.message }}
-              onRetry={retry}
-            />
-          </HeroUINativeProvider>
-        </KeyboardProvider>
+        <HeroUINativeProvider>
+          <GenericErrorScreen
+            title="Something went wrong"
+            message="Zen ran into an unexpected issue. Your practice data remains on this device."
+            errorDetails={{ status: error.message }}
+            onRetry={retry}
+          />
+        </HeroUINativeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -1,7 +1,6 @@
 import { deleteDatabaseAsync, SQLiteProvider } from "expo-sqlite";
 import { HeroUINativeConfig, HeroUINativeProvider } from "heroui-native";
 import { useState } from "react";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 
 import { initializeDatabase } from "@/data/database";
@@ -58,11 +57,9 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <KeyboardProvider>
-        <HeroUINativeProvider config={heroUINativeConfig}>
-          <LocalDataProvider>{runtime}</LocalDataProvider>
-        </HeroUINativeProvider>
-      </KeyboardProvider>
+      <HeroUINativeProvider config={heroUINativeConfig}>
+        <LocalDataProvider>{runtime}</LocalDataProvider>
+      </HeroUINativeProvider>
     </SafeAreaProvider>
   );
 }
