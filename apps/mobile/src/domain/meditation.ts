@@ -4,6 +4,13 @@ export const completionSoundSchema = z.enum(["soft-chime", "low-bowl", "wood-ton
 export const feelingSchema = z.enum(["calm", "clear", "grounded", "other"]);
 export const appearanceSchema = z.enum(["system", "light", "dark"]);
 export const onboardingStepSchema = z.enum(["welcome", "goal", "schedule", "reminders", "complete"]);
+export const sessionDurationSchema = z.union([
+  z.literal(5),
+  z.literal(10),
+  z.literal(15),
+  z.literal(20),
+  z.literal(30),
+]);
 export const MAX_PRACTICE_TIMES = 4;
 export const weekdaySchema = z.union([
   z.literal(0),
@@ -36,7 +43,7 @@ export const appPreferencesSchema = z.object({
     endMinute: z.number().int().min(0).max(1439),
   }),
   completionSound: completionSoundSchema,
-  lastDurationMinutes: z.union([z.literal(5), z.literal(10), z.literal(15), z.literal(20), z.literal(30)]),
+  lastDurationMinutes: sessionDurationSchema,
   appearance: appearanceSchema,
   reducedMotion: z.boolean(),
 });
@@ -51,22 +58,32 @@ export const activeSessionSchema = z.object({
   completionSound: completionSoundSchema,
 });
 
-export const completedSessionSchema = z.object({
-  id: z.string().min(1),
-  startedAtMs: z.number().int().nonnegative(),
-  completedAtMs: z.number().int().nonnegative(),
-  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  timezoneOffsetMinutes: z.number().int(),
-  durationMs: z.number().int().positive(),
-  completionSound: completionSoundSchema,
-  feeling: feelingSchema.nullable(),
-  acknowledgedAtMs: z.number().int().nonnegative().nullable(),
-});
+export const completedSessionSchema = z
+  .object({
+    id: z.string().min(1),
+    startedAtMs: z.number().int().nonnegative(),
+    completedAtMs: z.number().int().nonnegative(),
+    localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    timezoneOffsetMinutes: z.number().int(),
+    durationMs: z.number().int().positive(),
+    completionSound: completionSoundSchema,
+    feeling: feelingSchema.nullable(),
+    acknowledgedAtMs: z.number().int().nonnegative().nullable(),
+  })
+  .refine((session) => session.completedAtMs >= session.startedAtMs, {
+    message: "Completion time cannot precede the session start.",
+    path: ["completedAtMs"],
+  })
+  .refine((session) => session.acknowledgedAtMs === null || session.acknowledgedAtMs >= session.completedAtMs, {
+    message: "Acknowledgment time cannot precede completion.",
+    path: ["acknowledgedAtMs"],
+  });
 
 export type CompletionSound = z.infer<typeof completionSoundSchema>;
 export type Feeling = z.infer<typeof feelingSchema>;
 export type Appearance = z.infer<typeof appearanceSchema>;
 export type OnboardingStep = z.infer<typeof onboardingStepSchema>;
+export type SessionDuration = z.infer<typeof sessionDurationSchema>;
 export type Weekday = z.infer<typeof weekdaySchema>;
 export type PracticeTime = z.infer<typeof practiceTimeSchema>;
 export type AppPreferences = z.infer<typeof appPreferencesSchema>;
@@ -79,7 +96,7 @@ export const COMPLETION_SOUNDS: readonly { id: CompletionSound; label: string }[
   { id: "wood-tone", label: "Wood tone" },
 ];
 
-export const SESSION_DURATIONS = [5, 10, 15, 20, 30] as const;
+export const SESSION_DURATIONS = sessionDurationSchema.options.map((option) => option.value);
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   onboardingStep: "welcome",

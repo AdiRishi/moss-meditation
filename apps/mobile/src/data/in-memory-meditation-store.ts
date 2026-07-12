@@ -2,12 +2,19 @@ import {
   DEFAULT_PREFERENCES,
   activeSessionSchema,
   appPreferencesSchema,
+  completedSessionSchema,
   type ActiveSession,
   type AppPreferences,
   type CompletedSession,
   type Feeling,
 } from "@/domain/meditation";
-import { completeSession, pauseSession, projectSession, resumeSession } from "@/domain/session-timer";
+import {
+  completeSession,
+  createActiveSession,
+  pauseSession,
+  projectSession,
+  resumeSession,
+} from "@/domain/session-timer";
 
 import type { MeditationStore, StartSessionInput } from "./meditation-store";
 
@@ -29,7 +36,7 @@ export class InMemoryMeditationStore implements MeditationStore {
   constructor(state: InMemoryMeditationStoreState = {}) {
     this.preferences = appPreferencesSchema.parse(clone(state.preferences ?? DEFAULT_PREFERENCES));
     this.activeSession = state.activeSession ? activeSessionSchema.parse(clone(state.activeSession)) : null;
-    this.completedSessions = clone(state.completedSessions ?? []);
+    this.completedSessions = completedSessionSchema.array().parse(clone(state.completedSessions ?? []));
   }
 
   async loadPreferences() {
@@ -53,15 +60,10 @@ export class InMemoryMeditationStore implements MeditationStore {
       throw new Error("A meditation session is already active.");
     }
 
-    this.activeSession = activeSessionSchema.parse({
-      id: input.id,
-      plannedDurationMs: input.durationMinutes * 60_000,
-      startedAtMs: input.startedAtMs,
-      accumulatedActiveMs: 0,
-      resumedAtMs: input.startedAtMs,
-      status: "running",
-      completionSound: input.completionSound,
-    });
+    const preferences = appPreferencesSchema.parse(clone(input.preferences));
+    const session = createActiveSession(input);
+    this.preferences = preferences;
+    this.activeSession = session;
     return clone(this.activeSession);
   }
 
@@ -103,7 +105,9 @@ export class InMemoryMeditationStore implements MeditationStore {
 
   async acknowledgeSession(id: string, acknowledgedAtMs: number) {
     this.completedSessions = this.completedSessions.map((session) =>
-      session.id === id && session.acknowledgedAtMs === null ? { ...session, acknowledgedAtMs } : session,
+      session.id === id && session.acknowledgedAtMs === null
+        ? { ...session, acknowledgedAtMs: Math.max(session.completedAtMs, acknowledgedAtMs) }
+        : session,
     );
   }
 

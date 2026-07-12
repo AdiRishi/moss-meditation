@@ -1,4 +1,4 @@
-import { addLocalDays, fromLocalDateKey, startOfLocalMonth, startOfLocalWeek, toLocalDateKey } from "./date-time";
+import { addLocalDays, startOfLocalMonth, startOfLocalWeek, toLocalDateKey } from "./date-time";
 import type { CompletedSession, Weekday } from "./meditation";
 
 export type ProgressMode = "week" | "month";
@@ -19,8 +19,8 @@ export type ProgressSummary = {
 
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"] as const;
 
-function sessionsForRange(sessions: CompletedSession[], startMs: number, endMs: number) {
-  return sessions.filter((session) => session.completedAtMs >= startMs && session.completedAtMs < endMs);
+function sessionsForDateRange(sessions: CompletedSession[], startDateKey: string, endDateKey: string) {
+  return sessions.filter((session) => session.localDate >= startDateKey && session.localDate < endDateKey);
 }
 
 function minutesByDate(sessions: CompletedSession[]) {
@@ -90,7 +90,9 @@ export function buildProgressSummary(
     periodEnd.setMonth(periodEnd.getMonth() + 1);
   }
 
-  const periodSessions = sessionsForRange(sessions, startMs, periodEnd.getTime());
+  const periodStartKey = toLocalDateKey(startMs);
+  const periodEndKey = toLocalDateKey(periodEnd.getTime());
+  const periodSessions = sessionsForDateRange(sessions, periodStartKey, periodEndKey);
   const totals = minutesByDate(periodSessions);
   const sessionCounts = sessionCountsByDate(periodSessions);
   const buckets: ProgressBucket[] = [];
@@ -111,7 +113,11 @@ export function buildProgressSummary(
     while (cursor.getTime() < periodEnd.getTime()) {
       const bucketStart = cursor.getTime();
       const bucketEnd = Math.min(addLocalDays(bucketStart, 7), periodEnd.getTime());
-      const bucketSessions = sessionsForRange(periodSessions, bucketStart, bucketEnd);
+      const bucketSessions = sessionsForDateRange(
+        periodSessions,
+        toLocalDateKey(bucketStart),
+        toLocalDateKey(bucketEnd),
+      );
       buckets.push({
         label: String(cursor.getDate()),
         minutes: bucketSessions.reduce((sum, session) => sum + Math.round(session.durationMs / 60_000), 0),
@@ -132,8 +138,4 @@ export function buildProgressSummary(
 
 export function completedDateKeys(sessions: CompletedSession[]) {
   return new Set(sessions.map((session) => session.localDate));
-}
-
-export function compareLocalDateKeys(left: string, right: string) {
-  return fromLocalDateKey(left).getTime() - fromLocalDateKey(right).getTime();
 }

@@ -45,4 +45,17 @@ describe("progress summary", () => {
     expect(summary.dayRhythm).toBe(1);
     expect(summary.buckets.slice(0, 2).map((bucket) => bucket.completed)).toEqual([false, true]);
   });
+
+  it("uses the completion-zone date when the device has since changed time zones", () => {
+    const session = {
+      ...buildSession(6, 10),
+      completedAtMs: new Date(2026, 6, 5, 20, 30).getTime(),
+      localDate: "2026-07-06",
+    };
+
+    const summary = buildProgressSummary([session], [1, 2, 3, 4, 5], new Date(2026, 6, 10).getTime(), "week");
+
+    expect(summary.sessions).toBe(1);
+    expect(summary.buckets[0].minutes).toBe(10);
+  });
 });

@@ -12,7 +12,12 @@ export function NotificationResponseNavigator() {
   const handledIdentifier = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isReady || !response) {
+    if (!response) {
+      handledIdentifier.current = null;
+      return;
+    }
+
+    if (!isReady) {
       return;
     }
 
@@ -23,7 +28,11 @@ export function NotificationResponseNavigator() {
     }
 
     handledIdentifier.current = request.identifier;
-    void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+    try {
+      Notifications.clearLastNotificationResponse();
+    } catch {
+      handledIdentifier.current = null;
+    }
 
     if (kind === "session-completion") {
       void refresh().finally(() => router.replace("/meditation"));

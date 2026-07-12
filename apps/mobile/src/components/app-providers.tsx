@@ -5,9 +5,9 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 
 import { initializeDatabase } from "@/data/database";
-import type { MeditationStore } from "@/data/meditation-store";
-import { MeditationProvider, SQLiteMeditationProvider } from "@/providers/meditation-provider";
+import { SQLiteMeditationProvider } from "@/providers/meditation-provider";
 import { LocalDataErrorScreen } from "@/screens/error/local-data-error-screen";
+import { localNotifications } from "@/services/local-notifications";
 
 import { NotificationResponseNavigator } from "./notification-response-navigator";
 
@@ -17,7 +17,6 @@ const heroUINativeConfig: HeroUINativeConfig = {
 
 type AppProvidersProps = {
   children: React.ReactNode;
-  meditationStore?: MeditationStore;
 };
 
 function LocalDataProvider({ children }: { children: React.ReactNode }) {
@@ -30,7 +29,12 @@ function LocalDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const reset = () => {
-    void deleteDatabaseAsync("zen.db").then(retry).catch(setDatabaseError);
+    void deleteDatabaseAsync("zen.db")
+      .then(async () => {
+        await localNotifications.clearAllManagedNotifications().catch(() => undefined);
+        retry();
+      })
+      .catch(setDatabaseError);
   };
 
   if (databaseError) {
@@ -44,23 +48,20 @@ function LocalDataProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AppProviders({ children, meditationStore }: AppProvidersProps) {
+export function AppProviders({ children }: AppProvidersProps) {
   const runtime = (
     <>
       <NotificationResponseNavigator />
       {children}
     </>
   );
-  const content = meditationStore ? (
-    <MeditationProvider store={meditationStore}>{runtime}</MeditationProvider>
-  ) : (
-    <LocalDataProvider>{runtime}</LocalDataProvider>
-  );
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
-        <HeroUINativeProvider config={heroUINativeConfig}>{content}</HeroUINativeProvider>
+        <HeroUINativeProvider config={heroUINativeConfig}>
+          <LocalDataProvider>{runtime}</LocalDataProvider>
+        </HeroUINativeProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
   );

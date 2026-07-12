@@ -51,7 +51,7 @@ jest.mock("expo-notifications", () => ({
   SchedulableTriggerInputTypes: { WEEKLY: "weekly", DATE: "date" },
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   cancelScheduledNotificationAsync: jest.fn(),
-  clearLastNotificationResponseAsync: jest.fn(),
+  clearLastNotificationResponse: jest.fn(),
   getAllScheduledNotificationsAsync: jest.fn(async () => []),
   getLastNotificationResponseAsync: jest.fn(async () => null),
   getPermissionsAsync: jest.fn(async () => ({ status: "undetermined", granted: false })),
@@ -60,13 +60,6 @@ jest.mock("expo-notifications", () => ({
   setNotificationChannelAsync: jest.fn(),
   setNotificationHandler: jest.fn(),
   useLastNotificationResponse: jest.fn(() => null),
-}));
-
-jest.mock("expo-web-browser", () => ({
-  WebBrowserPresentationStyle: {
-    AUTOMATIC: "automatic",
-  },
-  openBrowserAsync: jest.fn(),
 }));
 
 jest.mock("uniwind", () => {

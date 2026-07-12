@@ -8,12 +8,12 @@ import { createSessionId } from "@/data/meditation-store";
 import { SQLiteMeditationStore } from "@/data/sqlite-meditation-store";
 import {
   DEFAULT_PREFERENCES,
-  appPreferencesSchema,
   type ActiveSession,
   type AppPreferences,
   type CompletedSession,
   type CompletionSound,
   type Feeling,
+  type SessionDuration,
 } from "@/domain/meditation";
 import { projectSession } from "@/domain/session-timer";
 import {
@@ -45,7 +45,7 @@ type MeditationState = {
 type MeditationContextValue = MeditationState & {
   refresh(): Promise<void>;
   savePreferences(preferences: AppPreferences): Promise<void>;
-  startSession(durationMinutes: number, completionSound?: CompletionSound): Promise<ActiveSession>;
+  startSession(durationMinutes: SessionDuration, completionSound?: CompletionSound): Promise<ActiveSession>;
   pauseSession(): Promise<ActiveSession>;
   resumeSession(): Promise<ActiveSession>;
   completeSession(): Promise<CompletedSession | null>;
@@ -70,9 +70,22 @@ function pendingCompletion(sessions: CompletedSession[]) {
   return sessions.find((session) => session.acknowledgedAtMs === null) ?? null;
 }
 
+function sessionCompletionNotification(session: ActiveSession | null, nowMs: number) {
+  if (!session || session.status !== "running") {
+    return null;
+  }
+
+  return {
+    sessionId: session.id,
+    scheduledAtMs: nowMs + projectSession(session, nowMs).remainingMs,
+    sound: session.completionSound,
+  };
+}
+
 export function MeditationProvider({ children, store, clock = systemClock, notifications }: MeditationProviderProps) {
   const stateRevision = useRef(0);
   const initialReminderSyncComplete = useRef(false);
+  const initialReminderSyncInFlight = useRef(false);
   const [systemReducedMotion, setSystemReducedMotion] = useState(false);
   const [state, setState] = useState<Omit<MeditationState, "reducedMotion">>({
     isReady: false,
@@ -92,12 +105,14 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
         let activeSession = await store.loadActiveSession();
 
         if (activeSession && projectSession(activeSession, clock.now()).isComplete) {
-          const completedSessionId = activeSession.id;
           await store.completeActiveSession(clock.now());
-          if (notifications) {
-            await notifications.cancelSessionCompletion(completedSessionId).catch(() => undefined);
-          }
           activeSession = await store.loadActiveSession();
+        }
+
+        if (notifications) {
+          await notifications
+            .syncSessionCompletion(sessionCompletionNotification(activeSession, clock.now()))
+            .catch(() => undefined);
         }
 
         const completedSessions = await store.listCompletedSessions();
@@ -157,49 +172,56 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
   }, [state.isReady, state.preferences.appearance]);
 
   useEffect(() => {
-    if (!notifications || !state.isReady || initialReminderSyncComplete.current) {
+    if (
+      !notifications ||
+      !state.isReady ||
+      state.error ||
+      initialReminderSyncComplete.current ||
+      initialReminderSyncInFlight.current
+    ) {
       return;
     }
-    initialReminderSyncComplete.current = true;
-    void notifications.rescheduleWeeklyReminders(state.preferences).catch(() => undefined);
-  }, [notifications, state.isReady, state.preferences]);
+    initialReminderSyncInFlight.current = true;
+    void notifications
+      .rescheduleWeeklyReminders(state.preferences)
+      .then(() => {
+        initialReminderSyncComplete.current = true;
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        initialReminderSyncInFlight.current = false;
+      });
+  }, [notifications, state.error, state.isReady, state.preferences]);
 
   const savePreferences = useCallback(
     async (preferences: AppPreferences) => {
-      const value = appPreferencesSchema.parse(preferences);
-      await store.savePreferences(value);
+      await store.savePreferences(preferences);
       stateRevision.current += 1;
-      setState((current) => ({ ...current, error: null, preferences: value }));
+      setState((current) => ({ ...current, error: null, preferences }));
     },
     [store],
   );
 
   const startSession = useCallback(
-    async (durationMinutes: number, completionSound?: CompletionSound) => {
+    async (durationMinutes: SessionDuration, completionSound?: CompletionSound) => {
       const nowMs = clock.now();
       const sound = completionSound ?? state.preferences.completionSound;
+      const preferences: AppPreferences = {
+        ...state.preferences,
+        lastDurationMinutes: durationMinutes,
+        completionSound: sound,
+      };
       const session = await store.startSession({
         id: createSessionId(nowMs),
         durationMinutes,
         startedAtMs: nowMs,
         completionSound: sound,
+        preferences,
       });
-      const preferences = {
-        ...state.preferences,
-        lastDurationMinutes: durationMinutes,
-        completionSound: sound,
-      } as AppPreferences;
-      await store.savePreferences(preferences);
       stateRevision.current += 1;
       setState((current) => ({ ...current, preferences, activeSession: session }));
       if (notifications) {
-        void notifications
-          .scheduleSessionCompletion({
-            sessionId: session.id,
-            scheduledAtMs: nowMs + session.plannedDurationMs,
-            sound: session.completionSound,
-          })
-          .catch(() => undefined);
+        await notifications.syncSessionCompletion(sessionCompletionNotification(session, nowMs)).catch(() => undefined);
       }
       return session;
     },
@@ -211,7 +233,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     stateRevision.current += 1;
     setState((current) => ({ ...current, activeSession: session }));
     if (notifications) {
-      void notifications.cancelSessionCompletion(session.id).catch(() => undefined);
+      await notifications.syncSessionCompletion(null).catch(() => undefined);
     }
     return session;
   }, [clock, notifications, store]);
@@ -222,22 +244,15 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     stateRevision.current += 1;
     setState((current) => ({ ...current, activeSession: session }));
     if (notifications) {
-      void notifications
-        .scheduleSessionCompletion({
-          sessionId: session.id,
-          scheduledAtMs: nowMs + projectSession(session, nowMs).remainingMs,
-          sound: session.completionSound,
-        })
-        .catch(() => undefined);
+      await notifications.syncSessionCompletion(sessionCompletionNotification(session, nowMs)).catch(() => undefined);
     }
     return session;
   }, [clock, notifications, store]);
 
   const completeActiveSession = useCallback(async () => {
-    const activeSession = await store.loadActiveSession();
     const completed = await store.completeActiveSession(clock.now());
-    if (activeSession && notifications) {
-      void notifications.cancelSessionCompletion(activeSession.id).catch(() => undefined);
+    if (notifications) {
+      await notifications.syncSessionCompletion(null).catch(() => undefined);
     }
     const completedSessions = await store.listCompletedSessions();
     stateRevision.current += 1;
@@ -251,10 +266,9 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
   }, [clock, notifications, store]);
 
   const abandonActiveSession = useCallback(async () => {
-    const activeSession = await store.loadActiveSession();
     await store.abandonActiveSession();
-    if (activeSession && notifications) {
-      void notifications.cancelSessionCompletion(activeSession.id).catch(() => undefined);
+    if (notifications) {
+      await notifications.syncSessionCompletion(null).catch(() => undefined);
     }
     stateRevision.current += 1;
     setState((current) => ({ ...current, activeSession: null }));
@@ -289,13 +303,10 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
   );
 
   const resetAllData = useCallback(async () => {
-    const activeSession = await store.loadActiveSession();
-    if (activeSession && notifications) {
-      await notifications.cancelSessionCompletion(activeSession.id).catch(() => undefined);
-    }
     await store.resetAllData();
     stateRevision.current += 1;
     if (notifications) {
+      await notifications.clearAllManagedNotifications().catch(() => undefined);
       await notifications.rescheduleWeeklyReminders(DEFAULT_PREFERENCES).catch(() => undefined);
     }
     await refresh();

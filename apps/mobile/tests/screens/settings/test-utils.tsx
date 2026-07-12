@@ -48,8 +48,8 @@ export function createNotifications(initialPermission: LocalNotificationPermissi
       permissionStatus: permission,
       scheduledCount: permission === "granted" && preferences.remindersEnabled ? 1 : 0,
     })),
-    scheduleSessionCompletion: jest.fn(async (_notification: SessionCompletionNotification) => true),
-    cancelSessionCompletion: jest.fn(async (_sessionId: string) => undefined),
+    syncSessionCompletion: jest.fn(async (_notification: SessionCompletionNotification | null) => true),
+    clearAllManagedNotifications: jest.fn(async () => undefined),
   };
   return notifications;
 }

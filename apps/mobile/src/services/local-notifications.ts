@@ -42,8 +42,8 @@ export interface LocalNotifications {
   getPermissionStatus(): Promise<LocalNotificationPermissionStatus>;
   requestPermission(): Promise<LocalNotificationPermissionStatus>;
   rescheduleWeeklyReminders(preferences: AppPreferences): Promise<ReminderSchedulingResult>;
-  scheduleSessionCompletion(notification: SessionCompletionNotification): Promise<boolean>;
-  cancelSessionCompletion(sessionId: string): Promise<void>;
+  syncSessionCompletion(notification: SessionCompletionNotification | null): Promise<boolean>;
+  clearAllManagedNotifications(): Promise<void>;
 }
 
 type ScheduledNotificationSummary = {
@@ -137,8 +137,9 @@ function buildReminderPlans(preferences: AppPreferences): ReminderPlan[] {
   );
 }
 
-function isManagedWeeklyReminder(notification: ScheduledNotificationSummary) {
-  return notification.content.data?.[NOTIFICATION_KIND_KEY] === WEEKLY_REMINDER_KIND;
+function isManagedNotification(notification: ScheduledNotificationSummary, kind?: ZenNotificationKind) {
+  const notificationKind = getZenNotificationKind(notification.content.data);
+  return notificationKind !== null && (!kind || notificationKind === kind);
 }
 
 function sessionCompletionIdentifier(sessionId: string) {
@@ -150,6 +151,8 @@ function sessionCompletionChannelId(sound: CompletionSound) {
 }
 
 export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi): LocalNotifications {
+  let mutationQueue = Promise.resolve();
+
   async function getPermissionStatus() {
     return permissionStatusFromNative(await nativeApi.getPermissionsAsync());
   }
@@ -162,16 +165,65 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
     });
   }
 
-  async function cancelManagedWeeklyReminders() {
+  async function cancelManagedNotifications(kind?: ZenNotificationKind) {
     const scheduled = await nativeApi.getAllScheduledNotificationsAsync();
     const identifiers = scheduled
-      .filter(isManagedWeeklyReminder)
+      .filter((notification) => isManagedNotification(notification, kind))
       .map((notification) => notification.identifier)
       .sort();
 
     for (const identifier of identifiers) {
       await nativeApi.cancelScheduledNotificationAsync(identifier);
     }
+  }
+
+  function serializeMutation<T>(update: () => Promise<T>) {
+    const result = mutationQueue.then(update, update);
+    mutationQueue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
+
+  async function scheduleSessionCompletion({ sessionId, scheduledAtMs, sound }: SessionCompletionNotification) {
+    if (!sessionId) {
+      throw new Error("A session ID is required to schedule its completion notification.");
+    }
+    if (!Number.isFinite(scheduledAtMs)) {
+      throw new Error("A finite completion time is required to schedule a notification.");
+    }
+    if ((await getPermissionStatus()) !== "granted") {
+      return false;
+    }
+
+    const filename = COMPLETION_SOUND_FILENAMES[sound];
+    const channelId = sessionCompletionChannelId(sound);
+    await nativeApi.setNotificationChannelAsync(channelId, {
+      name: "Session completion",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: filename,
+      enableVibrate: false,
+    });
+    await nativeApi.scheduleNotificationAsync({
+      identifier: sessionCompletionIdentifier(sessionId),
+      content: {
+        title: "Zen",
+        body: SESSION_COMPLETION_BODY,
+        sound: filename,
+        data: {
+          [NOTIFICATION_KIND_KEY]: SESSION_COMPLETION_KIND,
+          sessionId,
+        },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        channelId,
+        date: scheduledAtMs,
+      },
+    });
+
+    return true;
   }
 
   return {
@@ -191,89 +243,58 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
     },
 
     async rescheduleWeeklyReminders(preferences) {
-      await cancelManagedWeeklyReminders();
-      const permissionStatus = await getPermissionStatus();
-      const plans = preferences.remindersEnabled ? buildReminderPlans(preferences) : [];
+      return serializeMutation(async () => {
+        await cancelManagedNotifications(WEEKLY_REMINDER_KIND);
+        const permissionStatus = await getPermissionStatus();
+        const plans = preferences.remindersEnabled ? buildReminderPlans(preferences) : [];
 
-      if (permissionStatus !== "granted" || plans.length === 0) {
-        return { permissionStatus, scheduledCount: 0 };
-      }
-
-      await ensureReminderChannel();
-      const scheduledIdentifiers: string[] = [];
-
-      try {
-        for (const plan of plans) {
-          const identifier = await nativeApi.scheduleNotificationAsync({
-            identifier: plan.identifier,
-            content: {
-              title: "Zen",
-              body: PRACTICE_REMINDER_BODY,
-              sound: "default",
-              data: { [NOTIFICATION_KIND_KEY]: WEEKLY_REMINDER_KIND },
-            },
-            trigger: {
-              type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-              channelId: REMINDER_CHANNEL_ID,
-              weekday: plan.weekday,
-              hour: plan.hour,
-              minute: plan.minute,
-            },
-          });
-          scheduledIdentifiers.push(identifier);
+        if (permissionStatus !== "granted" || plans.length === 0) {
+          return { permissionStatus, scheduledCount: 0 };
         }
-      } catch (error) {
-        await Promise.allSettled(
-          scheduledIdentifiers.map((identifier) => nativeApi.cancelScheduledNotificationAsync(identifier)),
-        );
-        throw error;
-      }
 
-      return { permissionStatus, scheduledCount: scheduledIdentifiers.length };
+        await ensureReminderChannel();
+        const scheduledIdentifiers: string[] = [];
+
+        try {
+          for (const plan of plans) {
+            const identifier = await nativeApi.scheduleNotificationAsync({
+              identifier: plan.identifier,
+              content: {
+                title: "Zen",
+                body: PRACTICE_REMINDER_BODY,
+                sound: "default",
+                data: { [NOTIFICATION_KIND_KEY]: WEEKLY_REMINDER_KIND },
+              },
+              trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+                channelId: REMINDER_CHANNEL_ID,
+                weekday: plan.weekday,
+                hour: plan.hour,
+                minute: plan.minute,
+              },
+            });
+            scheduledIdentifiers.push(identifier);
+          }
+        } catch (error) {
+          await Promise.allSettled(
+            scheduledIdentifiers.map((identifier) => nativeApi.cancelScheduledNotificationAsync(identifier)),
+          );
+          throw error;
+        }
+
+        return { permissionStatus, scheduledCount: scheduledIdentifiers.length };
+      });
     },
 
-    async scheduleSessionCompletion({ sessionId, scheduledAtMs, sound }) {
-      if (!sessionId) {
-        throw new Error("A session ID is required to schedule its completion notification.");
-      }
-      if (!Number.isFinite(scheduledAtMs)) {
-        throw new Error("A finite completion time is required to schedule a notification.");
-      }
-      if ((await getPermissionStatus()) !== "granted") {
-        return false;
-      }
-
-      const filename = COMPLETION_SOUND_FILENAMES[sound];
-      const channelId = sessionCompletionChannelId(sound);
-      await nativeApi.setNotificationChannelAsync(channelId, {
-        name: "Session completion",
-        importance: Notifications.AndroidImportance.DEFAULT,
-        sound: filename,
-        enableVibrate: false,
+    async syncSessionCompletion(notification) {
+      return serializeMutation(async () => {
+        await cancelManagedNotifications(SESSION_COMPLETION_KIND);
+        return notification ? scheduleSessionCompletion(notification) : false;
       });
-      await nativeApi.scheduleNotificationAsync({
-        identifier: sessionCompletionIdentifier(sessionId),
-        content: {
-          title: "Zen",
-          body: SESSION_COMPLETION_BODY,
-          sound: filename,
-          data: {
-            [NOTIFICATION_KIND_KEY]: SESSION_COMPLETION_KIND,
-            sessionId,
-          },
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          channelId,
-          date: scheduledAtMs,
-        },
-      });
-
-      return true;
     },
 
-    async cancelSessionCompletion(sessionId) {
-      await nativeApi.cancelScheduledNotificationAsync(sessionCompletionIdentifier(sessionId));
+    async clearAllManagedNotifications() {
+      await serializeMutation(() => cancelManagedNotifications());
     },
   };
 }

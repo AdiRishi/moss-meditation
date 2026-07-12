@@ -10,7 +10,13 @@ import {
   type CompletedSession,
   type Feeling,
 } from "@/domain/meditation";
-import { completeSession, pauseSession, projectSession, resumeSession } from "@/domain/session-timer";
+import {
+  completeSession,
+  createActiveSession,
+  pauseSession,
+  projectSession,
+  resumeSession,
+} from "@/domain/session-timer";
 
 import type { MeditationStore, StartSessionInput } from "./meditation-store";
 
@@ -102,29 +108,29 @@ export class SQLiteMeditationStore implements MeditationStore {
   }
 
   async startSession(input: StartSessionInput) {
-    const session = activeSessionSchema.parse({
-      id: input.id,
-      plannedDurationMs: input.durationMinutes * 60_000,
-      startedAtMs: input.startedAtMs,
-      accumulatedActiveMs: 0,
-      resumedAtMs: input.startedAtMs,
-      status: "running",
-      completionSound: input.completionSound,
-    });
+    const preferences = appPreferencesSchema.parse(input.preferences);
+    const session = createActiveSession(input);
 
-    await this.db.runAsync(
-      `INSERT INTO active_session (
-         singleton_id, id, planned_duration_ms, started_at_ms,
-         accumulated_active_ms, resumed_at_ms, status, completion_sound
-       ) VALUES (1, ?, ?, ?, ?, ?, ?, ?)`,
-      session.id,
-      session.plannedDurationMs,
-      session.startedAtMs,
-      session.accumulatedActiveMs,
-      session.resumedAtMs,
-      session.status,
-      session.completionSound,
-    );
+    await this.db.withExclusiveTransactionAsync(async (transaction) => {
+      await transaction.runAsync(
+        `INSERT INTO preferences (singleton_id, value) VALUES (1, ?)
+         ON CONFLICT(singleton_id) DO UPDATE SET value = excluded.value`,
+        JSON.stringify(preferences),
+      );
+      await transaction.runAsync(
+        `INSERT INTO active_session (
+           singleton_id, id, planned_duration_ms, started_at_ms,
+           accumulated_active_ms, resumed_at_ms, status, completion_sound
+         ) VALUES (1, ?, ?, ?, ?, ?, ?, ?)`,
+        session.id,
+        session.plannedDurationMs,
+        session.startedAtMs,
+        session.accumulatedActiveMs,
+        session.resumedAtMs,
+        session.status,
+        session.completionSound,
+      );
+    });
     return session;
   }
 
@@ -162,10 +168,11 @@ export class SQLiteMeditationStore implements MeditationStore {
 
       completed = completeSession(active, nowMs);
       await transaction.runAsync(
-        `INSERT OR IGNORE INTO completed_sessions (
+        `INSERT INTO completed_sessions (
            id, started_at_ms, completed_at_ms, local_date, timezone_offset_minutes,
            duration_ms, completion_sound, feeling, acknowledged_at_ms
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO NOTHING`,
         completed.id,
         completed.startedAtMs,
         completed.completedAtMs,
@@ -193,7 +200,9 @@ export class SQLiteMeditationStore implements MeditationStore {
 
   async acknowledgeSession(id: string, acknowledgedAtMs: number) {
     await this.db.runAsync(
-      "UPDATE completed_sessions SET acknowledged_at_ms = ? WHERE id = ? AND acknowledged_at_ms IS NULL",
+      `UPDATE completed_sessions
+       SET acknowledged_at_ms = MAX(completed_at_ms, ?)
+       WHERE id = ? AND acknowledged_at_ms IS NULL`,
       acknowledgedAtMs,
       id,
     );

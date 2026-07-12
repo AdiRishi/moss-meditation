@@ -53,6 +53,11 @@ class FakeNotificationsApi implements LocalNotificationsNativeApi {
   readonly cancelled: string[] = [];
   readonly channels: { id: string; input: NotificationChannelInput }[] = [];
   permissionRequest: NotificationPermissionsRequest | undefined;
+  scheduleFailureAt: number | null = null;
+  scheduleGate: Promise<void> | null = null;
+  scheduleGateAt: number | null = null;
+  getScheduledCalls = 0;
+  private scheduleAttempts = 0;
 
   constructor(currentPermission: NotificationPermissionsStatus, scheduled: ScheduledNotification[] = []) {
     this.permission = currentPermission;
@@ -71,10 +76,18 @@ class FakeNotificationsApi implements LocalNotificationsNativeApi {
   }
 
   async getAllScheduledNotificationsAsync() {
+    this.getScheduledCalls += 1;
     return this.scheduled;
   }
 
   async scheduleNotificationAsync(request: NotificationRequestInput) {
+    this.scheduleAttempts += 1;
+    if (this.scheduleAttempts === this.scheduleFailureAt) {
+      throw new Error("Scheduling unavailable");
+    }
+    if (this.scheduleAttempts === this.scheduleGateAt) {
+      await this.scheduleGate;
+    }
     const identifier = request.identifier ?? `notification-${this.requests.length + 1}`;
     this.requests.push(request);
     this.scheduled.push({
@@ -263,12 +276,12 @@ describe("LocalNotifications", () => {
     expect(nativeApi.requests).toEqual([]);
   });
 
-  it("schedules and cancels a session completion with its selected bundled sound", async () => {
+  it("reconciles a session completion with its selected bundled sound", async () => {
     const nativeApi = new FakeNotificationsApi(permission("granted"));
     const notifications = createLocalNotifications(nativeApi);
 
     await expect(
-      notifications.scheduleSessionCompletion({
+      notifications.syncSessionCompletion({
         sessionId: "session-42",
         scheduledAtMs: 1_800_000_000_000,
         sound: "low-bowl",
@@ -303,8 +316,102 @@ describe("LocalNotifications", () => {
       },
     ]);
 
-    await notifications.cancelSessionCompletion("session-42");
+    await notifications.syncSessionCompletion(null);
     expect(nativeApi.cancelled).toEqual(["zen.session-completion.session-42"]);
     expect(nativeApi.scheduled).toEqual([]);
   });
+
+  it("rolls back a partial weekly reminder replacement without touching other notifications", async () => {
+    const nativeApi = new FakeNotificationsApi(permission("granted"), [
+      {
+        identifier: "old-weekly",
+        content: { data: { zenNotificationKind: "weekly-practice-reminder" } },
+      },
+      {
+        identifier: "active-session",
+        content: { data: { zenNotificationKind: "session-completion" } },
+      },
+      { identifier: "another-app", content: { data: {} } },
+    ]);
+    nativeApi.scheduleFailureAt = 2;
+    const notifications = createLocalNotifications(nativeApi);
+
+    await expect(
+      notifications.rescheduleWeeklyReminders(
+        preferences({
+          remindersEnabled: true,
+          selectedWeekdays: [1, 2],
+          quietHours: { startMinute: 0, endMinute: 0 },
+          practiceTimes: [DEFAULT_PREFERENCES.practiceTimes[0]],
+        }),
+      ),
+    ).rejects.toThrow("Scheduling unavailable");
+
+    expect(nativeApi.cancelled).toEqual(["old-weekly", "zen.weekly-practice-reminder.2.0650"]);
+    expect(nativeApi.scheduled.map((notification) => notification.identifier)).toEqual([
+      "active-session",
+      "another-app",
+    ]);
+  });
+
+  it("clears every Zen-owned notification while preserving other apps", async () => {
+    const nativeApi = new FakeNotificationsApi(permission("granted"), [
+      {
+        identifier: "weekly",
+        content: { data: { zenNotificationKind: "weekly-practice-reminder" } },
+      },
+      {
+        identifier: "session",
+        content: { data: { zenNotificationKind: "session-completion" } },
+      },
+      { identifier: "another-app", content: { data: {} } },
+    ]);
+
+    await createLocalNotifications(nativeApi).clearAllManagedNotifications();
+
+    expect(nativeApi.cancelled).toEqual(["session", "weekly"]);
+    expect(nativeApi.scheduled.map((notification) => notification.identifier)).toEqual(["another-app"]);
+  });
+
+  it("serializes overlapping reminder replacements so the latest plan wins", async () => {
+    let releaseFirstSchedule: (() => void) | undefined;
+    const nativeApi = new FakeNotificationsApi(permission("granted"));
+    nativeApi.scheduleGateAt = 1;
+    nativeApi.scheduleGate = new Promise((resolve) => {
+      releaseFirstSchedule = resolve;
+    });
+    const notifications = createLocalNotifications(nativeApi);
+    const monday = preferences({
+      remindersEnabled: true,
+      selectedWeekdays: [1],
+      quietHours: { startMinute: 0, endMinute: 0 },
+      practiceTimes: [DEFAULT_PREFERENCES.practiceTimes[0]],
+    });
+    const tuesday = preferences({
+      remindersEnabled: true,
+      selectedWeekdays: [2],
+      quietHours: { startMinute: 0, endMinute: 0 },
+      practiceTimes: [DEFAULT_PREFERENCES.practiceTimes[0]],
+    });
+
+    const firstUpdate = notifications.rescheduleWeeklyReminders(monday);
+    await waitForScheduleAttempt(nativeApi);
+    const secondUpdate = notifications.rescheduleWeeklyReminders(tuesday);
+
+    await Promise.resolve();
+    expect(nativeApi.getScheduledCalls).toBe(1);
+
+    releaseFirstSchedule?.();
+    await Promise.all([firstUpdate, secondUpdate]);
+
+    expect(nativeApi.scheduled.map((notification) => notification.identifier)).toEqual([
+      "zen.weekly-practice-reminder.3.0650",
+    ]);
+  });
 });
+
+async function waitForScheduleAttempt(nativeApi: FakeNotificationsApi) {
+  for (let attempt = 0; attempt < 10 && nativeApi.getScheduledCalls === 0; attempt += 1) {
+    await Promise.resolve();
+  }
+}

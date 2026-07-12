@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import { InMemoryMeditationStore } from "@/data/in-memory-meditation-store";
-import type { ActiveSession } from "@/domain/meditation";
+import { DEFAULT_PREFERENCES, type ActiveSession } from "@/domain/meditation";
 import { MeditationProvider, useMeditation, type Clock } from "@/providers/meditation-provider";
 import type { LocalNotifications } from "@/services/local-notifications";
 
@@ -20,8 +20,8 @@ function createNotifications(): jest.Mocked<LocalNotifications> {
       permissionStatus: "granted" as const,
       scheduledCount: 0,
     })),
-    scheduleSessionCompletion: jest.fn(async (_notification) => true),
-    cancelSessionCompletion: jest.fn(async (_sessionId) => undefined),
+    syncSessionCompletion: jest.fn(async (_notification) => true),
+    clearAllManagedNotifications: jest.fn(async () => undefined),
   };
 }
 
@@ -67,7 +67,7 @@ describe("MeditationProvider", () => {
     expect(result.current.activeSession).toBeNull();
     expect(result.current.completedSessions).toHaveLength(1);
     expect(result.current.pendingCompletion?.id).toBe("overdue-session");
-    expect(notifications.cancelSessionCompletion).toHaveBeenCalledWith("overdue-session");
+    expect(notifications.syncSessionCompletion).toHaveBeenCalledWith(null);
 
     await act(async () => result.current.refresh());
     expect(result.current.completedSessions).toHaveLength(1);
@@ -79,8 +79,7 @@ describe("MeditationProvider", () => {
   it("persists session transitions when notification delivery fails", async () => {
     const store = new InMemoryMeditationStore();
     const notifications = createNotifications();
-    notifications.scheduleSessionCompletion.mockRejectedValue(new Error("Notifications unavailable"));
-    notifications.cancelSessionCompletion.mockRejectedValue(new Error("Notifications unavailable"));
+    notifications.syncSessionCompletion.mockRejectedValue(new Error("Notifications unavailable"));
     const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
     const { result } = renderHook(useMeditation, { wrapper });
 
@@ -130,5 +129,46 @@ describe("MeditationProvider", () => {
     await waitFor(() => expect(result.current.isReady).toBe(true));
     expect(result.current.activeSession).toMatchObject({ status: "running" });
     await expect(store.loadActiveSession()).resolves.toMatchObject({ status: "running" });
+  });
+
+  it("retries the initial reminder sync after local data is refreshed", async () => {
+    const store = new InMemoryMeditationStore();
+    const notifications = createNotifications();
+    notifications.rescheduleWeeklyReminders
+      .mockRejectedValueOnce(new Error("Scheduling unavailable"))
+      .mockResolvedValue({ permissionStatus: "granted", scheduledCount: 0 });
+    const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
+    const { result } = renderHook(useMeditation, { wrapper });
+
+    await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(1));
+    await act(async () => result.current.refresh());
+
+    await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(2));
+  });
+
+  it("can reset unreadable session data and clear orphaned notifications", async () => {
+    class CorruptSessionStore extends InMemoryMeditationStore {
+      private shouldFail = true;
+
+      override async loadActiveSession() {
+        if (this.shouldFail) {
+          this.shouldFail = false;
+          throw new Error("Stored session is corrupt");
+        }
+        return super.loadActiveSession();
+      }
+    }
+
+    const store = new CorruptSessionStore();
+    const notifications = createNotifications();
+    const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
+    const { result } = renderHook(useMeditation, { wrapper });
+
+    await waitFor(() => expect(result.current.error?.message).toBe("Stored session is corrupt"));
+    await act(async () => result.current.resetAllData());
+
+    expect(result.current.error).toBeNull();
+    expect(notifications.clearAllManagedNotifications).toHaveBeenCalledTimes(1);
+    await expect(store.loadPreferences()).resolves.toEqual(DEFAULT_PREFERENCES);
   });
 });

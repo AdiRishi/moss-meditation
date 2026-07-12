@@ -1,10 +1,18 @@
-import type { ActiveSession, AppPreferences, CompletedSession, CompletionSound, Feeling } from "@/domain/meditation";
+import type {
+  ActiveSession,
+  AppPreferences,
+  CompletedSession,
+  CompletionSound,
+  Feeling,
+  SessionDuration,
+} from "@/domain/meditation";
 
 export type StartSessionInput = {
   id: string;
-  durationMinutes: number;
+  durationMinutes: SessionDuration;
   startedAtMs: number;
   completionSound: CompletionSound;
+  preferences: AppPreferences;
 };
 
 export interface MeditationStore {

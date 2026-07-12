@@ -46,4 +46,17 @@ describe("session timer", () => {
       "A session cannot be completed while time remains.",
     );
   });
+
+  it("keeps completion timestamps valid after a backward device-clock adjustment", () => {
+    const session = {
+      ...buildActiveSession(),
+      accumulatedActiveMs: 10 * 60_000,
+      resumedAtMs: null,
+      status: "paused" as const,
+    };
+
+    const completed = completeSession(session, STARTED_AT - 60_000);
+
+    expect(completed.completedAtMs).toBe(STARTED_AT);
+  });
 });

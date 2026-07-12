@@ -1,6 +1,6 @@
 import { toLocalDateKey } from "./date-time";
-import type { ActiveSession, CompletedSession } from "./meditation";
-import { completedSessionSchema } from "./meditation";
+import type { ActiveSession, CompletedSession, CompletionSound, SessionDuration } from "./meditation";
+import { activeSessionSchema, completedSessionSchema } from "./meditation";
 
 export type SessionProjection = {
   elapsedMs: number;
@@ -8,6 +8,23 @@ export type SessionProjection = {
   isComplete: boolean;
   phase: "active" | "ending" | "complete";
 };
+
+export function createActiveSession(input: {
+  id: string;
+  durationMinutes: SessionDuration;
+  startedAtMs: number;
+  completionSound: CompletionSound;
+}) {
+  return activeSessionSchema.parse({
+    id: input.id,
+    plannedDurationMs: input.durationMinutes * 60_000,
+    startedAtMs: input.startedAtMs,
+    accumulatedActiveMs: 0,
+    resumedAtMs: input.startedAtMs,
+    status: "running",
+    completionSound: input.completionSound,
+  });
+}
 
 export function projectSession(session: ActiveSession, nowMs: number): SessionProjection {
   const runningElapsed =
@@ -59,7 +76,7 @@ export function completeSession(session: ActiveSession, nowMs: number): Complete
     0,
     session.accumulatedActiveMs + Math.max(0, nowMs - (session.resumedAtMs ?? nowMs)) - session.plannedDurationMs,
   );
-  const completedAtMs = nowMs - overtimeMs;
+  const completedAtMs = Math.max(session.startedAtMs, nowMs - overtimeMs);
 
   return completedSessionSchema.parse({
     id: session.id,

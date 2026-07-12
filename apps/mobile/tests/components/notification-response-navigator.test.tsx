@@ -1,0 +1,66 @@
+import { render } from "@testing-library/react-native";
+import * as Notifications from "expo-notifications";
+
+import { NotificationResponseNavigator } from "@/components/notification-response-navigator";
+import { useMeditation } from "@/providers/meditation-provider";
+
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+}));
+
+jest.mock("@/providers/meditation-provider", () => ({
+  useMeditation: jest.fn(),
+}));
+
+const mockedUseMeditation = jest.mocked(useMeditation);
+const mockedUseLastResponse = jest.mocked(Notifications.useLastNotificationResponse);
+
+function weeklyReminderResponse() {
+  return {
+    actionIdentifier: Notifications.DEFAULT_ACTION_IDENTIFIER,
+    notification: {
+      date: 1_800_000_000_000,
+      request: {
+        identifier: "zen.weekly-practice-reminder.2.0700",
+        content: {
+          title: "Zen",
+          body: "Time for a quiet pause.",
+          data: { zenNotificationKind: "weekly-practice-reminder" },
+        },
+        trigger: null,
+      },
+    },
+  } as unknown as Notifications.NotificationResponse;
+}
+
+describe("NotificationResponseNavigator", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedUseMeditation.mockReturnValue({
+      activeSession: null,
+      isReady: true,
+      pendingCompletion: null,
+      preferences: { onboardingCompleted: true },
+      refresh: jest.fn(),
+    } as unknown as ReturnType<typeof useMeditation>);
+  });
+
+  it("handles a later delivery of the same repeating reminder", () => {
+    const response = weeklyReminderResponse();
+    mockedUseLastResponse.mockReturnValue(response);
+    const screen = render(<NotificationResponseNavigator />);
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenLastCalledWith("/session-setup");
+
+    mockedUseLastResponse.mockReturnValue(null);
+    screen.rerender(<NotificationResponseNavigator />);
+    mockedUseLastResponse.mockReturnValue(response);
+    screen.rerender(<NotificationResponseNavigator />);
+
+    expect(mockPush).toHaveBeenCalledTimes(2);
+  });
+});
