@@ -25,4 +25,24 @@ The API listens on `http://localhost:3000`. `pnpm ios` compiles the shared packa
 
 When the simulator browser mirror remains on `Connecting...`, allow the device-scoped `serve-sim` helper time to initialize and refresh the existing browser page. A few refreshes after the helper reports that framebuffer capture is ready usually reconnect the stream; do not open duplicate tabs. Only treat the mirror as ready after a real simulator frame is visible.
 
-Stop the local services, app/log sessions, and any device-scoped `serve-sim` helper started for the validation when finished. Do not stop pre-existing processes or another task's simulator mirror.
+## Cleanup
+
+Before the final response, stop the API, Metro, app/log sessions, and simulator mirror started for the validation unless the user explicitly asked to leave them running. Stop the long-running terminal sessions gracefully and wait for them to exit.
+
+Stop only the device-scoped simulator stream started for this validation:
+
+```bash
+npx --yes serve-sim@latest --list
+npx --yes serve-sim@latest --kill <simulator-udid>
+```
+
+Run `npx --yes serve-sim@latest --list` again and confirm that it no longer lists the simulator used for this validation. Other device-scoped streams may belong to another task and must be left running. Never use an unscoped `serve-sim --kill`.
+
+After stopping servers that you started, verify the standard harness ports are clear:
+
+```bash
+lsof -iTCP:3000 -sTCP:LISTEN -n -P || true
+lsof -iTCP:8081 -sTCP:LISTEN -n -P || true
+```
+
+Both commands should print no listening process for servers you started. If either port is still occupied by a process you started, stop it gracefully and check again. Do not stop a pre-existing process or a process owned by another task.
