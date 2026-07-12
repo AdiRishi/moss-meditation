@@ -22,12 +22,6 @@
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-segmented-control/segmented-control": "2.5.7",
-    "@repo/api": "workspace:*",
-    "@repo/rpc": "workspace:*",
-    "@tanstack/react-form": "^1.33.1",
-    "@tanstack/react-query": "^5.101.2",
-    "@trpc/client": "^11.18.0",
-    "@trpc/tanstack-react-query": "^11.18.0",
     "expo": "^57.0.4",
     "expo-audio": "~57.0.0",
     "expo-build-properties": "~57.0.3",
@@ -38,8 +32,8 @@
     "expo-glass-effect": "~57.0.0",
     "expo-haptics": "~57.0.0",
     "expo-image": "~57.0.0",
+    "expo-keep-awake": "~57.0.0",
     "expo-linking": "~57.0.2",
-    "expo-network": "~57.0.0",
     "expo-notifications": "~57.0.3",
     "expo-router": "~57.0.4",
     "expo-splash-screen": "~57.0.2",
@@ -93,9 +87,6 @@
     ],
     "setupFiles": [
       "<rootDir>/tests/testing-utils/jest-setup.ts"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/tests/testing-utils/jest-after-env.ts"
     ],
     "collectCoverage": true,
     "collectCoverageFrom": [

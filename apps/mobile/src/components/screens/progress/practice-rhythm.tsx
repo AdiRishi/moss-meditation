@@ -15,9 +15,8 @@ function bucketAccessibilityLabel(bucket: ProgressBucket, index: number, mode: P
     mode === "week"
       ? WEEKDAY_NAMES[index]
       : `Week beginning ${MONTH_BUCKET_FORMATTER.format(fromLocalDateKey(bucket.dateKey))}`;
-  const status = bucket.completed
-    ? `${bucket.minutes} ${bucket.minutes === 1 ? "minute" : "minutes"} practiced`
-    : "no practice recorded";
+  const minutesPracticed = `${bucket.minutes} ${bucket.minutes === 1 ? "minute" : "minutes"} practiced`;
+  const status = bucket.minutes > 0 ? minutesPracticed : "no practice recorded";
 
   return `${period}, ${status}`;
 }

@@ -1,0 +1,111 @@
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, View } from "react-native";
+
+import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
+import { Typography } from "@/components/ui/typography";
+import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
+import { ZenCard } from "@/components/ui/zen/zen-card";
+import { ZenIcon } from "@/components/ui/zen/zen-icon";
+import { shortTimeFormatter, toLocalDateKey } from "@/domain/date-time";
+import { type Feeling } from "@/domain/meditation";
+import { useCompletionSounds } from "@/hooks/use-completion-sounds";
+import { useThemeColors } from "@/hooks/use-theme-colors";
+import { impactHaptic, selectionHaptic } from "@/lib/haptics";
+import { useMeditation } from "@/providers/meditation-provider";
+
+const FEELINGS: readonly { id: Feeling; label: string }[] = [
+  { id: "calm", label: "Calm" },
+  { id: "clear", label: "Clear" },
+  { id: "grounded", label: "Grounded" },
+  { id: "other", label: "Other" },
+];
+
+export function SessionCompleteScreen() {
+  const router = useRouter();
+  const colors = useThemeColors();
+  const { id, playSound } = useLocalSearchParams<{ id?: string; playSound?: string }>();
+  const { acknowledgeSession, completedSessions, pendingCompletion, setSessionFeeling } = useMeditation();
+  const completionSoundStarted = useRef(false);
+  const { play, stop } = useCompletionSounds();
+  const session = completedSessions.find((item) => item.id === id) ?? pendingCompletion;
+  const [nowMs] = useState(() => Date.now());
+  const sessionId = session?.id;
+  const sessionCompletionSound = session?.completionSound;
+
+  useEffect(() => {
+    if (!sessionId || !sessionCompletionSound || playSound !== "1" || completionSoundStarted.current) {
+      return;
+    }
+    completionSoundStarted.current = true;
+    impactHaptic();
+    void play(sessionCompletionSound);
+  }, [play, playSound, sessionCompletionSound, sessionId]);
+
+  if (!session) {
+    return <Redirect href="/(tabs)/today" />;
+  }
+
+  const durationMinutes = Math.round(session.durationMs / 60_000);
+  const dateLabel = session.localDate === toLocalDateKey(nowMs) ? "Today" : session.localDate;
+
+  const done = async () => {
+    await stop();
+    await acknowledgeSession(session.id);
+    router.replace("/(tabs)/today");
+  };
+
+  return (
+    <StandardScrollView contentContainerClassName="min-h-full justify-between gap-8 pb-6 pt-14">
+      <View className="items-center gap-6">
+        <View className="size-14 items-center justify-center rounded-full border-2 border-accent">
+          <ZenIcon name="check" size={25} tintColor={colors.accent} />
+        </View>
+        <View className="items-center gap-2">
+          <Typography variant="h2" align="center">
+            Session complete.
+          </Typography>
+          <Typography tone="muted" align="center" selectable>
+            You sat for {durationMinutes} {durationMinutes === 1 ? "minute" : "minutes"}.
+          </Typography>
+        </View>
+
+        <ZenCard className="w-full px-4 py-4">
+          <View className="flex-row items-center gap-4">
+            <ZenIcon name="calendar" size={22} tintColor={colors.muted} />
+            <Typography selectable>
+              {dateLabel}, {shortTimeFormatter.format(new Date(session.completedAtMs))}
+            </Typography>
+          </View>
+        </ZenCard>
+
+        <View className="h-px w-2/3 bg-separator" />
+        <Typography tone="muted" align="center">
+          How do you feel?
+        </Typography>
+        <View className="flex-row flex-wrap justify-center gap-2">
+          {FEELINGS.map((feeling) => {
+            const isSelected = session.feeling === feeling.id;
+            return (
+              <Pressable
+                key={feeling.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+                className={`min-h-11 justify-center rounded-full border px-5 ${
+                  isSelected ? "border-accent bg-accent-soft" : "border-stone"
+                }`}
+                onPress={() => {
+                  selectionHaptic();
+                  void setSessionFeeling(session.id, isSelected ? null : feeling.id);
+                }}
+              >
+                <Typography variant="small">{feeling.label}</Typography>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+      <ZenPrimaryButton onPress={() => void done()}>Done</ZenPrimaryButton>
+    </StandardScrollView>
+  );
+}

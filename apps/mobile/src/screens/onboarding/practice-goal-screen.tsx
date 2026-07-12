@@ -1,0 +1,88 @@
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { View } from "react-native";
+
+import { OnboardingCounter } from "@/components/screens/onboarding/onboarding-counter";
+import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
+import { Typography } from "@/components/ui/typography";
+import { ScreenHeader } from "@/components/ui/zen/screen-header";
+import { WeekdaySelector } from "@/components/ui/zen/weekday-selector";
+import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
+import type { Weekday } from "@/domain/meditation";
+import { selectionHaptic } from "@/lib/haptics";
+import { useMeditation } from "@/providers/meditation-provider";
+
+const WEEKDAY_ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
+
+export function PracticeGoalScreen() {
+  const router = useRouter();
+  const { preferences, savePreferences } = useMeditation();
+  const [selectedWeekdays, setSelectedWeekdays] = useState(preferences.selectedWeekdays);
+  const [sessionsPerDay, setSessionsPerDay] = useState(preferences.sessionsPerDay);
+
+  const setDayCount = (count: number) => {
+    selectionHaptic();
+    const next = WEEKDAY_ORDER.filter((day) => selectedWeekdays.includes(day)).slice(0, count);
+    for (const day of WEEKDAY_ORDER) {
+      if (next.length >= count) {
+        break;
+      }
+      if (!next.includes(day)) {
+        next.push(day);
+      }
+    }
+    setSelectedWeekdays(next);
+  };
+
+  const continueOnboarding = async () => {
+    await savePreferences({
+      ...preferences,
+      selectedWeekdays,
+      sessionsPerDay,
+      onboardingStep: "schedule",
+    });
+    router.push("/onboarding/schedule");
+  };
+
+  return (
+    <StandardScrollView contentContainerClassName="min-h-full justify-between gap-8 pb-6">
+      <View className="gap-8">
+        <ScreenHeader onBack={() => router.back()} />
+        <Typography variant="h1">How often would{"\n"}you like to sit?</Typography>
+        <View className="gap-4">
+          <WeekdaySelector
+            selected={selectedWeekdays}
+            onChange={(value) => {
+              selectionHaptic();
+              setSelectedWeekdays(value);
+            }}
+          />
+          <Typography variant="small" tone="muted">
+            Your intended practice days
+          </Typography>
+        </View>
+        <View className="h-px bg-separator" />
+        <View className="gap-4">
+          <OnboardingCounter
+            value={selectedWeekdays.length}
+            label={selectedWeekdays.length === 1 ? "day per week" : "days per week"}
+            minimum={1}
+            maximum={7}
+            onChange={setDayCount}
+          />
+          <OnboardingCounter
+            value={sessionsPerDay}
+            label={sessionsPerDay === 1 ? "session on practice days" : "sessions on practice days"}
+            minimum={1}
+            maximum={3}
+            onChange={(value) => {
+              selectionHaptic();
+              setSessionsPerDay(value);
+            }}
+          />
+        </View>
+      </View>
+      <ZenPrimaryButton onPress={() => void continueOnboarding()}>Continue</ZenPrimaryButton>
+    </StandardScrollView>
+  );
+}

@@ -58,6 +58,12 @@
       "expo-image",
       "expo-web-browser",
       "expo-status-bar",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sounds/soft-chime.wav", "./assets/sounds/low-bowl.wav", "./assets/sounds/wood-tone.wav"]
+        }
+      ],
       "expo-sqlite",
       "expo-audio",
       "@react-native-community/datetimepicker"

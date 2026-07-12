@@ -18,6 +18,10 @@ export const sessionDateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
+const weekdayFormatter = new Intl.DateTimeFormat(undefined, {
+  weekday: "long",
+});
+
 export function toLocalDateKey(timeMs: number) {
   const date = new Date(timeMs);
   const year = date.getFullYear();
@@ -64,6 +68,18 @@ export function addLocalDays(timeMs: number, amount: number) {
 export function formatPracticeTime(time: Pick<PracticeTime, "hour" | "minute">) {
   const date = new Date(2026, 0, 1, time.hour, time.minute);
   return shortTimeFormatter.format(date);
+}
+
+export function formatScheduledPractice(scheduledAtMs: number, nowMs: number) {
+  const time = shortTimeFormatter.format(new Date(scheduledAtMs));
+  const dateKey = toLocalDateKey(scheduledAtMs);
+  if (dateKey === toLocalDateKey(nowMs)) {
+    return time;
+  }
+  if (dateKey === toLocalDateKey(addLocalDays(startOfLocalDay(nowMs), 1))) {
+    return `Tomorrow, ${time}`;
+  }
+  return `${weekdayFormatter.format(new Date(scheduledAtMs))}, ${time}`;
 }
 
 export type NextPractice = {

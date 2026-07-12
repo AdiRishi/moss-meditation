@@ -1,10 +1,10 @@
 import type { CompletedSession } from "@/domain/meditation";
 import { buildProgressSummary } from "@/domain/progress";
 
-function buildSession(day: number, durationMinutes: number): CompletedSession {
+function buildSession(day: number, durationMinutes: number, sequence = 1): CompletedSession {
   const completedAtMs = new Date(2026, 6, day, 7, 0).getTime();
   return {
-    id: `session-${day}`,
+    id: `session-${day}-${sequence}`,
     startedAtMs: completedAtMs - durationMinutes * 60_000,
     completedAtMs,
     localDate: `2026-07-${String(day).padStart(2, "0")}`,
@@ -34,5 +34,15 @@ describe("progress summary", () => {
     const summary = buildProgressSummary(sessions, [1, 2, 3, 4, 5], nowMs, "week");
 
     expect(summary.dayRhythm).toBe(2);
+  });
+
+  it("counts a practice day only after its intended number of sessions", () => {
+    const sessions = [buildSession(6, 10), buildSession(7, 10), buildSession(7, 10, 2)];
+    const nowMs = new Date(2026, 6, 8, 6, 0).getTime();
+
+    const summary = buildProgressSummary(sessions, [1, 2, 3, 4, 5], nowMs, "week", 2);
+
+    expect(summary.dayRhythm).toBe(1);
+    expect(summary.buckets.slice(0, 2).map((bucket) => bucket.completed)).toEqual([false, true]);
   });
 });

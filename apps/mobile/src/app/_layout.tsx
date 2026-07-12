@@ -16,6 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppProviders } from "@/components/app-providers";
 import "@/global.css";
 import { GenericErrorScreen } from "@/screens/error/generic-error-screen";
+import { configureForegroundNotificationHandling } from "@/services/local-notifications";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -27,7 +28,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
           <HeroUINativeProvider>
             <GenericErrorScreen
               title="Something went wrong"
-              message="We encountered an unexpected issue while processing your request. The application has logged this event."
+              message="Zen ran into an unexpected issue. Your practice data remains on this device."
               errorDetails={{ status: error.message }}
               onRetry={retry}
             />
@@ -48,10 +49,8 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      void SplashScreen.hideAsync();
-    }
-  }, [fontError, fontsLoaded]);
+    configureForegroundNotificationHandling();
+  }, []);
 
   if (!fontsLoaded && !fontError) {
     return null;
@@ -60,8 +59,8 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProviders>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
+        <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+          <Stack.Screen name="meditation" options={{ gestureEnabled: false }} />
         </Stack>
       </AppProviders>
     </GestureHandlerRootView>

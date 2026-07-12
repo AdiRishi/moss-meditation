@@ -5,29 +5,6 @@
 // Feature-specific behavior, such as Expo Router navigation or native tabs, belongs
 // in the test or harness that needs it so each test keeps its assumptions visible.
 
-jest.mock("@tanstack/devtools-event-client", () => {
-  class EventClient {
-    createEventPayload(eventSuffix: string, payload: unknown) {
-      return {
-        type: eventSuffix,
-        payload,
-      };
-    }
-
-    emit() {}
-
-    getPluginId() {
-      return "mock-devtools";
-    }
-
-    on() {
-      return () => {};
-    }
-  }
-
-  return { EventClient };
-});
-
 jest.mock("react-native-reanimated", () => {
   const Reanimated = require("react-native-reanimated/mock");
 
@@ -54,12 +31,6 @@ jest.mock("expo-router/react-navigation", () => {
   };
 });
 
-jest.mock("expo-network", () => ({
-  addNetworkStateListener: () => ({
-    remove: jest.fn(),
-  }),
-}));
-
 jest.mock("expo-symbols", () => {
   const React = require("react");
   const { Text } = require("react-native");
@@ -73,6 +44,23 @@ jest.mock("expo-symbols", () => {
       ),
   };
 });
+
+jest.mock("expo-notifications", () => ({
+  AndroidImportance: { DEFAULT: 5 },
+  IosAuthorizationStatus: { PROVISIONAL: 3, EPHEMERAL: 4 },
+  SchedulableTriggerInputTypes: { WEEKLY: "weekly", DATE: "date" },
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  cancelScheduledNotificationAsync: jest.fn(),
+  clearLastNotificationResponseAsync: jest.fn(),
+  getAllScheduledNotificationsAsync: jest.fn(async () => []),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+  getPermissionsAsync: jest.fn(async () => ({ status: "undetermined", granted: false })),
+  requestPermissionsAsync: jest.fn(async () => ({ status: "denied", granted: false })),
+  scheduleNotificationAsync: jest.fn(),
+  setNotificationChannelAsync: jest.fn(),
+  setNotificationHandler: jest.fn(),
+  useLastNotificationResponse: jest.fn(() => null),
+}));
 
 jest.mock("expo-web-browser", () => ({
   WebBrowserPresentationStyle: {

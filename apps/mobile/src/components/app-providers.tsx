@@ -9,6 +9,8 @@ import type { MeditationStore } from "@/data/meditation-store";
 import { MeditationProvider, SQLiteMeditationProvider } from "@/providers/meditation-provider";
 import { LocalDataErrorScreen } from "@/screens/error/local-data-error-screen";
 
+import { NotificationResponseNavigator } from "./notification-response-navigator";
+
 const heroUINativeConfig: HeroUINativeConfig = {
   devInfo: { stylingPrinciples: false },
 };
@@ -43,10 +45,16 @@ function LocalDataProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function AppProviders({ children, meditationStore }: AppProvidersProps) {
+  const runtime = (
+    <>
+      <NotificationResponseNavigator />
+      {children}
+    </>
+  );
   const content = meditationStore ? (
-    <MeditationProvider store={meditationStore}>{children}</MeditationProvider>
+    <MeditationProvider store={meditationStore}>{runtime}</MeditationProvider>
   ) : (
-    <LocalDataProvider>{children}</LocalDataProvider>
+    <LocalDataProvider>{runtime}</LocalDataProvider>
   );
 
   return (

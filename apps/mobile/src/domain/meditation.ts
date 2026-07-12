@@ -72,7 +72,7 @@ export type AppPreferences = z.infer<typeof appPreferencesSchema>;
 export type ActiveSession = z.infer<typeof activeSessionSchema>;
 export type CompletedSession = z.infer<typeof completedSessionSchema>;
 
-export const COMPLETION_SOUNDS: ReadonlyArray<{ id: CompletionSound; label: string }> = [
+export const COMPLETION_SOUNDS: readonly { id: CompletionSound; label: string }[] = [
   { id: "soft-chime", label: "Soft chime" },
   { id: "low-bowl", label: "Low bowl" },
   { id: "wood-tone", label: "Wood tone" },

@@ -22,7 +22,13 @@ export function ProgressScreen() {
       setNowMs(Date.now());
     }, []),
   );
-  const summary = buildProgressSummary(completedSessions, preferences.selectedWeekdays, nowMs, mode);
+  const summary = buildProgressSummary(
+    completedSessions,
+    preferences.selectedWeekdays,
+    nowMs,
+    mode,
+    preferences.sessionsPerDay,
+  );
   const periodLabel = mode === "week" ? "this week" : "this month";
   const hasPracticeHistory = completedSessions.length > 0;
 
