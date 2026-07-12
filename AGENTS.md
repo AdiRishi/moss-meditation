@@ -42,6 +42,20 @@ pnpm run prebuild         # Compile packages and regenerate native projects
 
 Generated folders such as `apps/mobile/ios/`, `apps/mobile/android/`, `.expo/`, `.turbo/`, `coverage/`, and package `dist/` outputs should stay uncommitted. Clean them up after validation unless the user explicitly wants generated native projects left on disk.
 
+## Maintainability
+
+Long term maintainability is a core priority. If you add new functionality, first check if there is shared logic that can be extracted to a separate module. Duplicate logic across multiple files is a code smell and should be avoided. Don't be afraid to change existing code. Don't take shortcuts by just adding local logic to solve a problem.
+
+## Tests
+
+Write high-signal tests that protect durable behavior. Prefer integration-style tests through a module's public interface, using real in-process collaborators and realistic fixtures; replace only true external seams with controlled adapters. A test should describe an outcome a caller or user cares about, protect an important invariant or failure/recovery path, and remain valid after an internal refactor.
+
+Do not add tests merely to record the implementation journey. Avoid old-versus-new comparisons, tests for transient scaffolding, assertions about private helpers or internal call order, mock call-count tests, and expectations recomputed with the same logic as the implementation. When behavior changes, update or remove tests for obsolete contracts instead of preserving both histories. Before adding a test, be able to name the durable regression it would catch. Keep each test focused on one logical behavior and use independently known expected values.
+
+## Commit Discipline
+
+Commit throughout development at meaningful, reviewable checkpoints instead of waiting until the end. Use focused messages that describe the behavior or architectural change, keep unrelated work in separate commits, and avoid vague checkpoint or catch-all commits. Order commits so the history tells the implementation story: each commit should be coherent on its own, and the sequence should make the motivation, foundations, behavior changes, and validation easy for a reviewer to follow.
+
 ## Architecture
 
 This is a pnpm/Turbo monorepo with three TypeScript workspaces:
