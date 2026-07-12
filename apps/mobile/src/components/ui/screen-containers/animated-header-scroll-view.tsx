@@ -14,7 +14,7 @@ import { ScreenScrollViewBase, type ScreenScrollViewBaseProps } from "./screen-s
 import { useScreenContainerInsets } from "./use-screen-container-insets";
 
 const COLLAPSED_HEADER_HEIGHT = 56;
-const CONTENT_HORIZONTAL_PADDING = 16;
+const CONTENT_HORIZONTAL_PADDING = 24;
 
 function resolveInset(value: unknown) {
   return typeof value === "number" ? value : 0;
@@ -56,42 +56,54 @@ export function AnimatedHeaderScrollView({
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
+      scrollY.set(event.contentOffset.y);
     },
   });
 
-  const largeTitleContainerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, 72], [1, 0], Extrapolation.CLAMP),
-    transform: [
-      {
-        translateY: interpolate(scrollY.value, [0, 96], [0, -18], Extrapolation.CLAMP),
-      },
-      {
-        scale: interpolate(scrollY.value, [-80, 0, 96], [1.08, 1, 0.94], Extrapolation.CLAMP),
-      },
-    ],
-  }));
+  const largeTitleContainerStyle = useAnimatedStyle(() => {
+    const offset = scrollY.get();
 
-  const collapsedHeaderStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [28, 84], [0, 1], Extrapolation.CLAMP),
-    transform: [
-      {
-        translateY: interpolate(scrollY.value, [28, 84], [12, 0], Extrapolation.CLAMP),
-      },
-    ],
-  }));
+    return {
+      opacity: interpolate(offset, [0, 72], [1, 0], Extrapolation.CLAMP),
+      transform: [
+        {
+          translateY: interpolate(offset, [0, 96], [0, -18], Extrapolation.CLAMP),
+        },
+        {
+          scale: interpolate(offset, [-80, 0, 96], [1.08, 1, 0.94], Extrapolation.CLAMP),
+        },
+      ],
+    };
+  });
 
-  const collapsedSubtitleAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [72, 124], [0, 1], Extrapolation.CLAMP),
-    transform: [
-      {
-        translateY: interpolate(scrollY.value, [72, 124], [8, 0], Extrapolation.CLAMP),
-      },
-    ],
-  }));
+  const collapsedHeaderStyle = useAnimatedStyle(() => {
+    const offset = scrollY.get();
+
+    return {
+      opacity: interpolate(offset, [28, 84], [0, 1], Extrapolation.CLAMP),
+      transform: [
+        {
+          translateY: interpolate(offset, [28, 84], [12, 0], Extrapolation.CLAMP),
+        },
+      ],
+    };
+  });
+
+  const collapsedSubtitleAnimatedStyle = useAnimatedStyle(() => {
+    const offset = scrollY.get();
+
+    return {
+      opacity: interpolate(offset, [72, 124], [0, 1], Extrapolation.CLAMP),
+      transform: [
+        {
+          translateY: interpolate(offset, [72, 124], [8, 0], Extrapolation.CLAMP),
+        },
+      ],
+    };
+  });
 
   const headerBackgroundStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, 88], [0, 1], Extrapolation.CLAMP),
+    opacity: interpolate(scrollY.get(), [0, 88], [0, 1], Extrapolation.CLAMP),
   }));
 
   return (
@@ -123,7 +135,7 @@ export function AnimatedHeaderScrollView({
         <View style={styles.collapsedHeaderContent}>
           <View style={styles.collapsedHeaderText}>
             <Animated.Text
-              className="text-center text-xl font-semibold tracking-tight"
+              className="text-center font-serif text-lg leading-6 font-normal"
               style={[{ color: foreground }, smallTitleStyle]}
             >
               {title}
@@ -161,7 +173,7 @@ export function AnimatedHeaderScrollView({
       >
         <Animated.View style={[styles.largeTitleContainer, largeTitleContainerStyle]}>
           <Animated.Text
-            className="text-4xl font-semibold tracking-tight"
+            className="font-serif text-4xl leading-[42px] font-normal"
             style={[{ color: foreground }, largeTitleStyle]}
           >
             {title}
@@ -173,7 +185,7 @@ export function AnimatedHeaderScrollView({
           ) : null}
         </Animated.View>
 
-        <View className="px-4">{children}</View>
+        <View className="px-6">{children}</View>
       </ScreenScrollViewBase>
     </View>
   );

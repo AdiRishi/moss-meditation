@@ -11,7 +11,7 @@ import { type VariantProps, tv } from "tailwind-variants";
 import { useScreenContainerScrollInsets } from "./use-screen-container-insets";
 
 const screenScrollViewVariants = tv({
-  base: "flex-1 bg-background px-4",
+  base: "flex-1 bg-background px-6",
 });
 
 export type ScreenScrollViewBaseProps = KeyboardAwareScrollViewProps &

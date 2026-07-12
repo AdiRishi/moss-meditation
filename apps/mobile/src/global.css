@@ -3,170 +3,141 @@
 
 @import "heroui-native/styles";
 
-/* Path to the heroui-native lib inside node_modules relative to global.css */
 @source "../node_modules/heroui-native/lib";
 
-/*
-The following section re-defines the HeroUI Native theme colors. Feel free to customize these to match your app's design.
-Source - https://github.com/heroui-inc/heroui-native/blob/rc/src/styles/variables.css
- */
 @theme {
-    /* Primitive Colors (Do not change between light and dark) */
-    --white: oklch(100% 0 0);
-    --black: oklch(0% 0 0);
-    --snow: oklch(0.9911 0 0);
-    --eclipse: oklch(0.2103 0.0059 285.89);
+    /* Zen brand primitives */
+    --color-mist: #f5f2eb;
+    --color-paper: #fbf9f4;
+    --color-sand: #e6dfd2;
+    --color-stone: #cfc6b8;
+    --color-moss: #7b866e;
+    --color-slate: #4b5154;
+    --color-ink: #1e2326;
 
-    /* Border */
+    /* HeroUI Native foundations */
+    --white: #ffffff;
+    --black: #000000;
+    --snow: var(--color-mist);
+    --eclipse: var(--color-ink);
     --border-width: 1px;
-    --field-border-width: 0px;
+    --field-border-width: 1px;
+    --radius: 0.75rem;
+    --field-radius: 0.75rem;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1.25rem;
+    --radius-xl: 1.75rem;
+    --radius-full: 999px;
+    --opacity-disabled: 0.48;
 
-    /* Base radius */
-    --radius: 0.5rem;
-    --field-radius: calc(var(--radius) * 1.5);
-
-    /* Opacity */
-    --opacity-disabled: 0.5;
+    /* Licensed faces can be supplied later without changing component styles. */
+    --font-sans: Söhne, Inter, ui-sans-serif, system-ui, sans-serif;
+    --font-display: Canela, "Iowan Old Style", Georgia, serif;
+    --font-serif: Canela, "Iowan Old Style", Georgia, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 @layer theme {
     :root {
         @variant light {
-            /* Base Colors */
-            --background: oklch(0.9702 0 0);
-            --foreground: var(--eclipse);
+            --background: var(--color-mist);
+            --foreground: var(--color-ink);
 
-            /* Surface: Used for non-overlay components (cards, accordions, disclosure groups) */
-            --surface: var(--white);
-            --surface-foreground: var(--foreground);
+            --surface: var(--color-paper);
+            --surface-foreground: var(--color-ink);
+            --surface-secondary: var(--color-sand);
+            --surface-secondary-foreground: var(--color-ink);
+            --surface-tertiary: color-mix(in srgb, var(--color-sand) 58%, var(--color-mist));
+            --surface-tertiary-foreground: var(--color-ink);
 
-            --surface-secondary: oklch(0.9524 0.0013 286.37);
-            --surface-secondary-foreground: var(--foreground);
+            --overlay: var(--color-paper);
+            --overlay-foreground: var(--color-ink);
+            --backdrop: rgb(30 35 38 / 24%);
 
-            --surface-tertiary: oklch(0.9373 0.0013 286.37);
-            --surface-tertiary-foreground: var(--foreground);
+            --muted: var(--color-slate);
+            --default: var(--color-sand);
+            --default-foreground: var(--color-ink);
+            --accent: var(--color-moss);
+            --accent-foreground: var(--color-mist);
+            --accent-soft: color-mix(in srgb, var(--color-moss) 18%, var(--color-mist));
+            --accent-soft-foreground: var(--color-ink);
 
-            /* Overlay: Used for floating/overlay components (dialogs, popovers, modals, menus) */
-            --overlay: var(--white);
-            --overlay-foreground: var(--foreground);
-            --backdrop: oklch(0% 0 0 / 20%);
+            --field-background: var(--color-paper);
+            --field-foreground: var(--color-ink);
+            --field-placeholder: var(--color-slate);
+            --field-border: var(--color-stone);
 
-            --muted: oklch(0.5517 0.0138 285.94);
+            --info: var(--color-slate);
+            --info-foreground: var(--color-mist);
+            --success: var(--color-moss);
+            --success-foreground: var(--color-mist);
+            --warning: #a77c4f;
+            --warning-foreground: var(--color-mist);
+            --danger: #a6544b;
+            --danger-foreground: var(--color-mist);
 
-            --default: oklch(94% 0.001 286.375);
-            --default-foreground: var(--eclipse);
+            --segment: var(--color-paper);
+            --segment-foreground: var(--color-ink);
+            --border: color-mix(in srgb, var(--color-stone) 72%, transparent);
+            --separator: color-mix(in srgb, var(--color-stone) 82%, transparent);
+            --focus: var(--color-moss);
+            --link: var(--color-ink);
 
-            --accent: oklch(0.6204 0.195 253.83);
-            --accent-foreground: var(--snow);
-
-            /* Form Fields */
-            --field-background: var(--white);
-            --field-foreground: oklch(0.2103 0.0059 285.89);
-            --field-placeholder: var(--muted);
-            --field-border: transparent; /* no border by default on form fields */
-
-            /* Status Colors */
-            --info: oklch(0.7329 0.1935 150.81);
-            --info-foreground: var(--eclipse);
-
-            --success: oklch(0.7329 0.1935 150.81);
-            --success-foreground: var(--eclipse);
-
-            --warning: oklch(0.7819 0.1585 72.33);
-            --warning-foreground: var(--eclipse);
-
-            --danger: oklch(0.6532 0.2328 25.74);
-            --danger-foreground: var(--snow);
-
-            /* Component Colors */
-            --segment: var(--white);
-            --segment-foreground: var(--eclipse);
-
-            /* Misc Colors */
-            --border: oklch(90% 0.004 286.32);
-            --separator: oklch(74% 0.004 286.32);
-            --focus: var(--accent);
-            --link: var(--foreground);
-
-            /* Shadows */
             --surface-shadow:
-                0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06);
+                0 10px 28px 0 rgb(30 35 38 / 4%), 0 2px 8px 0 rgb(30 35 38 / 4%), 0 0 1px 0 rgb(30 35 38 / 8%);
             --overlay-shadow:
-                0 2px 8px 0 rgba(0, 0, 0, 0.02), 0 -6px 12px 0 rgba(0, 0, 0, 0.01), 0 14px 28px 0 rgba(0, 0, 0, 0.03);
-            --field-shadow:
-                0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06);
+                0 18px 44px 0 rgb(30 35 38 / 8%), 0 4px 14px 0 rgb(30 35 38 / 5%), 0 0 1px 0 rgb(30 35 38 / 8%);
+            --field-shadow: 0 1px 3px 0 rgb(30 35 38 / 4%);
         }
 
         @variant dark {
-            /* Base Colors */
-            --background: oklch(12% 0.005 285.823);
-            --foreground: var(--snow);
+            --background: var(--color-ink);
+            --foreground: var(--color-mist);
 
-            /* Surface: Used for non-overlay components (cards, accordions, disclosure groups) */
-            --surface: oklch(0.2103 0.0059 285.89);
-            --surface-foreground: var(--foreground);
+            --surface: #292f31;
+            --surface-foreground: var(--color-mist);
+            --surface-secondary: #343b3d;
+            --surface-secondary-foreground: var(--color-mist);
+            --surface-tertiary: #3f4749;
+            --surface-tertiary-foreground: var(--color-mist);
 
-            --surface-secondary: oklch(0.257 0.0037 286.14);
-            --surface-secondary-foreground: var(--foreground);
+            --overlay: #292f31;
+            --overlay-foreground: var(--color-mist);
+            --backdrop: rgb(0 0 0 / 34%);
 
-            --surface-tertiary: oklch(0.2721 0.0024 247.91);
-            --surface-tertiary-foreground: var(--foreground);
+            --muted: var(--color-stone);
+            --default: #343b3d;
+            --default-foreground: var(--color-mist);
+            --accent: var(--color-moss);
+            --accent-foreground: var(--color-mist);
+            --accent-soft: #41493f;
+            --accent-soft-foreground: var(--color-mist);
 
-            /* Overlay: Used for floating/overlay components (dialogs, popovers, modals, menus) - lighter for contrast */
-            --overlay: oklch(0.2103 0.0059 285.89);
-            --overlay-foreground: var(--foreground);
-            --backdrop: oklch(0% 0 0 / 20%);
+            --field-background: #292f31;
+            --field-foreground: var(--color-mist);
+            --field-placeholder: var(--color-stone);
+            --field-border: var(--color-slate);
 
-            --muted: oklch(70.5% 0.015 286.067);
+            --info: var(--color-stone);
+            --info-foreground: var(--color-ink);
+            --success: #929d85;
+            --success-foreground: var(--color-ink);
+            --warning: #c79b69;
+            --warning-foreground: var(--color-ink);
+            --danger: #c87970;
+            --danger-foreground: var(--color-ink);
 
-            --default: oklch(27.4% 0.006 286.033);
-            --default-foreground: var(--snow);
+            --segment: #343b3d;
+            --segment-foreground: var(--color-mist);
+            --border: var(--color-slate);
+            --separator: #5e6669;
+            --focus: #929d85;
+            --link: var(--color-mist);
 
-            --accent: oklch(0.6204 0.195 253.83);
-            --accent-foreground: var(--snow);
-
-            /* Form Field Defaults - Colors (only the ones that are different from light theme) */
-            --field-background: oklch(0.2103 0.0059 285.89);
-            --field-foreground: var(--foreground);
-            --field-placeholder: var(--muted);
-            --field-border: transparent; /* no border by default on form fields */
-
-            /* Status Colors */
-            --info: oklch(0.6204 0.195 253.83);
-            --info-foreground: var(--snow);
-
-            --success: oklch(0.7329 0.1935 150.81);
-            --success-foreground: var(--eclipse);
-
-            --warning: oklch(0.8203 0.1388 76.34);
-            --warning-foreground: var(--eclipse);
-
-            --danger: oklch(0.594 0.1967 24.63);
-            --danger-foreground: var(--snow);
-
-            /* Component Colors */
-            --segment: oklch(0.3964 0.01 285.93);
-            --segment-foreground: var(--foreground);
-
-            /* Misc Colors */
-            --border: oklch(28% 0.006 286.033);
-            --separator: oklch(40% 0.006 286.033);
-            --focus: var(--accent);
-            --link: var(--foreground);
-
-            /* Shadows */
-            --surface-shadow: 0 0 0 0 transparent inset; /* No shadow on dark mode */
-            --overlay-shadow: 0 0 1px 0 rgba(255, 255, 255, 0.2) inset;
-            --field-shadow: 0 0 0 0 transparent inset; /* Transparent shadow to allow ring utilities to work */
+            --surface-shadow: 0 0 0 1px rgb(245 242 235 / 4%) inset;
+            --overlay-shadow: 0 0 0 1px rgb(245 242 235 / 7%) inset;
+            --field-shadow: 0 0 0 1px rgb(245 242 235 / 4%) inset;
         }
     }
-}
-
-:root {
-    --font-display:
-        Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol,
-        Noto Color Emoji;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
-    --font-rounded: "SF Pro Rounded", "Hiragino Maru Gothic ProN", Meiryo, "MS PGothic", sans-serif;
-    --font-serif: Georgia, "Times New Roman", serif;
 }

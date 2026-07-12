@@ -31,10 +31,10 @@ export function HomeScreen() {
       <View className="items-center gap-6">
         <View className="items-center gap-2">
           <Typography variant="display" align="center">
-            Zen Meditation
+            Zen
           </Typography>
           <Typography variant="small" tone="muted" align="center">
-            Find stillness, one moment at a time.
+            A quiet rhythm for daily practice.
           </Typography>
         </View>
       </View>

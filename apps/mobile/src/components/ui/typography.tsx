@@ -2,19 +2,20 @@ import { Text, type TextProps, type TextStyle } from "react-native";
 import { type VariantProps, tv } from "tailwind-variants";
 
 const typographyVariants = tv({
-  base: "text-foreground",
+  base: "font-sans text-foreground",
   variants: {
     variant: {
-      display: "text-4xl leading-tight font-semibold tracking-tight sm:text-5xl",
-      h1: "text-3xl leading-tight font-semibold tracking-tight sm:text-4xl",
-      h2: "text-2xl leading-tight font-semibold tracking-tight sm:text-3xl",
-      h3: "text-xl leading-8 font-semibold sm:text-2xl sm:leading-9",
-      h4: "text-lg leading-7 font-semibold sm:text-xl sm:leading-8",
+      display: "font-serif text-5xl leading-[52px] font-normal",
+      h1: "font-serif text-4xl leading-[42px] font-normal",
+      h2: "font-serif text-[28px] leading-[34px] font-normal",
+      h3: "text-xl leading-[26px] font-medium",
+      h4: "text-lg leading-6 font-medium",
       body: "text-base leading-6",
-      bodyBold: "text-base leading-6 font-semibold",
+      bodyBold: "text-base leading-6 font-medium",
       small: "text-sm leading-5",
-      smallBold: "text-sm leading-5 font-semibold",
-      caption: "text-xs leading-4",
+      smallBold: "text-sm leading-5 font-medium",
+      label: "text-xs leading-4 font-medium tracking-wide",
+      caption: "text-[11px] leading-[15px]",
       code: "font-mono text-sm leading-5",
       link: "text-base leading-6 underline",
     },

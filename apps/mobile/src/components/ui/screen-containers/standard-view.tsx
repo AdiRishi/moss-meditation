@@ -5,7 +5,7 @@ import { VariantProps, tv } from "tailwind-variants";
 import { useScreenContainerInsets } from "./use-screen-container-insets";
 
 const standardViewVariants = tv({
-  base: "bg-background px-4",
+  base: "bg-background px-6",
 });
 
 type StandardViewProps = ViewProps &
