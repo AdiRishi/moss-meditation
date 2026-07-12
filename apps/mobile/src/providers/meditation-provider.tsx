@@ -58,8 +58,6 @@ type MeditationContextValue = MeditationState & {
 };
 
 const MeditationContext = createContext<MeditationContextValue | null>(null);
-const INITIAL_REMINDER_RETRY_MS = 5_000;
-const MAX_INITIAL_REMINDER_SYNC_ATTEMPTS = 2;
 
 type MeditationProviderProps = {
   children: React.ReactNode;
@@ -86,8 +84,6 @@ function sessionCompletionNotification(session: ActiveSession | null, nowMs: num
 
 export function MeditationProvider({ children, store, clock = systemClock, notifications }: MeditationProviderProps) {
   const stateRevision = useRef(0);
-  const initialReminderSyncComplete = useRef(false);
-  const initialReminderSyncInFlight = useRef(false);
   const [systemReducedMotion, setSystemReducedMotion] = useState(false);
   const [state, setState] = useState<Omit<MeditationState, "reducedMotion">>({
     isReady: false,
@@ -133,6 +129,9 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
           pendingCompletion: pendingCompletion(completedSessions),
           notificationPermission,
         });
+        if (notifications) {
+          void notifications.rescheduleWeeklyReminders(preferences).catch(() => undefined);
+        }
         return true;
       } catch (error) {
         if (refreshRevision !== stateRevision.current) {
@@ -173,55 +172,11 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     }
   }, [state.isReady, state.preferences.appearance]);
 
-  useEffect(() => {
-    if (
-      !notifications ||
-      !state.isReady ||
-      state.error ||
-      initialReminderSyncComplete.current ||
-      initialReminderSyncInFlight.current
-    ) {
-      return;
-    }
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | undefined;
-    let attempts = 0;
-
-    const syncReminders = async () => {
-      attempts += 1;
-      initialReminderSyncInFlight.current = true;
-      try {
-        await notifications.rescheduleWeeklyReminders(state.preferences);
-        if (!cancelled) {
-          initialReminderSyncComplete.current = true;
-        }
-      } catch {
-        if (!cancelled && attempts < MAX_INITIAL_REMINDER_SYNC_ATTEMPTS) {
-          retryTimer = setTimeout(() => {
-            initialReminderSyncInFlight.current = false;
-            void syncReminders();
-          }, INITIAL_REMINDER_RETRY_MS);
-          return;
-        }
-      }
-      if (!cancelled) {
-        initialReminderSyncInFlight.current = false;
-      }
-    };
-
-    void syncReminders();
-    return () => {
-      cancelled = true;
-      clearTimeout(retryTimer);
-      initialReminderSyncInFlight.current = false;
-    };
-  }, [notifications, state.error, state.isReady, state.preferences]);
-
   const savePreferences = useCallback(
     async (preferences: AppPreferences) => {
       await store.savePreferences(preferences);
       stateRevision.current += 1;
-      setState((current) => ({ ...current, error: null, preferences }));
+      setState((current) => ({ ...current, preferences }));
     },
     [store],
   );
@@ -331,7 +286,6 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     stateRevision.current += 1;
     if (notifications) {
       await notifications.clearAllManagedNotifications().catch(() => undefined);
-      await notifications.rescheduleWeeklyReminders(DEFAULT_PREFERENCES).catch(() => undefined);
     }
     await refresh();
   }, [notifications, refresh, store]);
@@ -356,40 +310,22 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     [notifications, state.preferences],
   );
 
-  const value = useMemo<MeditationContextValue>(
-    () => ({
-      ...state,
-      reducedMotion: state.preferences.reducedMotion || systemReducedMotion,
-      refresh,
-      savePreferences,
-      startSession,
-      pauseSession: pauseActiveSession,
-      resumeSession: resumeActiveSession,
-      completeSession: completeActiveSession,
-      abandonSession: abandonActiveSession,
-      setSessionFeeling,
-      acknowledgeSession,
-      requestReminderPermission,
-      rescheduleReminders,
-      resetAllData,
-    }),
-    [
-      abandonActiveSession,
-      acknowledgeSession,
-      completeActiveSession,
-      pauseActiveSession,
-      refresh,
-      requestReminderPermission,
-      rescheduleReminders,
-      resetAllData,
-      resumeActiveSession,
-      savePreferences,
-      setSessionFeeling,
-      startSession,
-      state,
-      systemReducedMotion,
-    ],
-  );
+  const value: MeditationContextValue = {
+    ...state,
+    reducedMotion: state.preferences.reducedMotion || systemReducedMotion,
+    refresh,
+    savePreferences,
+    startSession,
+    pauseSession: pauseActiveSession,
+    resumeSession: resumeActiveSession,
+    completeSession: completeActiveSession,
+    abandonSession: abandonActiveSession,
+    setSessionFeeling,
+    acknowledgeSession,
+    requestReminderPermission,
+    rescheduleReminders,
+    resetAllData,
+  };
 
   return <MeditationContext value={value}>{children}</MeditationContext>;
 }

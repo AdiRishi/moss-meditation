@@ -44,10 +44,6 @@ function createWrapper({
 }
 
 describe("MeditationProvider", () => {
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   it("recovers an overdue session exactly once and keeps it pending until acknowledgment", async () => {
     const activeSession: ActiveSession = {
       id: "overdue-session",
@@ -137,38 +133,47 @@ describe("MeditationProvider", () => {
     await expect(store.loadActiveSession()).resolves.toMatchObject({ status: "running" });
   });
 
-  it("retries the initial reminder sync after a transient failure", async () => {
-    jest.useFakeTimers();
+  it("reconciles reminders again after a later refresh", async () => {
     const store = new InMemoryMeditationStore();
     const notifications = createNotifications();
     notifications.rescheduleWeeklyReminders
       .mockRejectedValueOnce(new Error("Scheduling unavailable"))
       .mockResolvedValue({ permissionStatus: "granted", scheduledCount: 0 });
     const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
-    renderHook(useMeditation, { wrapper });
+    const { result } = renderHook(useMeditation, { wrapper });
 
     await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(1));
     await act(async () => {
-      jest.advanceTimersByTime(5_000);
+      await result.current.refresh();
     });
 
     await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(2));
   });
 
-  it("stops retrying reminder sync after the bounded recovery attempt", async () => {
-    jest.useFakeTimers();
-    const store = new InMemoryMeditationStore();
+  it("keeps a load error visible until a complete refresh succeeds", async () => {
+    class RecoverableSessionStore extends InMemoryMeditationStore {
+      shouldFail = true;
+
+      override async loadActiveSession() {
+        if (this.shouldFail) {
+          throw new Error("Stored session is corrupt");
+        }
+        return super.loadActiveSession();
+      }
+    }
+
+    const store = new RecoverableSessionStore();
     const notifications = createNotifications();
-    notifications.rescheduleWeeklyReminders.mockRejectedValue(new Error("Scheduling unavailable"));
     const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
-    renderHook(useMeditation, { wrapper });
+    const { result } = renderHook(useMeditation, { wrapper });
 
-    await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(1));
-    await act(async () => {
-      jest.advanceTimersByTime(60_000);
-    });
+    await waitFor(() => expect(result.current.error?.message).toBe("Stored session is corrupt"));
+    await act(async () => result.current.savePreferences({ ...DEFAULT_PREFERENCES, appearance: "dark" }));
+    expect(result.current.error?.message).toBe("Stored session is corrupt");
 
-    await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(2));
+    store.shouldFail = false;
+    await act(async () => result.current.refresh());
+    expect(result.current.error).toBeNull();
   });
 
   it("can reset unreadable session data and clear orphaned notifications", async () => {
