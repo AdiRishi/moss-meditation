@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/raineorshine/npm-check-updates/main/src/types/RunOptions.json",
+  "root": true,
+  "workspaces": true,
+  "target": "semver",
+  "cooldown": "1d",
+  "reject": []
+}

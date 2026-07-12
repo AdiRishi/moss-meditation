@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "heroui-native": {
+      "source": "heroui-inc/heroui",
+      "sourceType": "github",
+      "skillPath": "skills/heroui-native/SKILL.md",
+      "computedHash": "d2fc03a13d03678d40799726a144ba72ba1cb08126176ddbf0a0461c901aef29"
+    },
+    "react-doctor": {
+      "source": "millionco/react-doctor",
+      "sourceType": "github",
+      "skillPath": "skills/react-doctor/SKILL.md",
+      "computedHash": "fa180e84006740f0ad139f3d11bc9b1ba43de91b376e73d4e40b5e09e37fa9ed"
+    },
+    "serve-sim": {
+      "source": "evanbacon/serve-sim",
+      "sourceType": "github",
+      "skillPath": "skills/serve-sim/SKILL.md",
+      "computedHash": "f36989794356ed42ce288b292f825c2b6261e9cbf4aba2ebdccefd672ffdc47f"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/composition-patterns/SKILL.md",
+      "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
+    },
+    "vercel-react-native-skills": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-skills/SKILL.md",
+      "computedHash": "41d24eafa7c3d82e270439808f7cfbc4d51aeb2d14f2809a2267c16275784d06"
+    }
+  }
+}
