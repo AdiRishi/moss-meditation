@@ -40,8 +40,6 @@ pnpm web                  # Start Expo web
 pnpm run prebuild         # Compile packages and regenerate native projects
 ```
 
-Generated folders such as `apps/mobile/ios/`, `apps/mobile/android/`, `.expo/`, `.turbo/`, `coverage/`, and package `dist/` outputs should stay uncommitted. Clean them up after validation unless the user explicitly wants generated native projects left on disk.
-
 ## Maintainability
 
 Long term maintainability is a core priority. If you add new functionality, first check if there is shared logic that can be extracted to a separate module. Duplicate logic across multiple files is a code smell and should be avoided. Don't be afraid to change existing code. Don't take shortcuts by just adding local logic to solve a problem.
