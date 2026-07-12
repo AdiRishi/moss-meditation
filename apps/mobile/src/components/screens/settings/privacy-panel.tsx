@@ -39,7 +39,7 @@ export function ResetLocalDataButton({ disabled, onPress }: { disabled?: boolean
       accessibilityLabel={disabled ? "Resetting local data" : "Reset Local Data"}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
-      className="h-14 w-full items-center justify-center rounded-xl border border-danger"
+      className="min-h-14 w-full items-center justify-center rounded-xl border border-danger px-4 py-3"
       disabled={disabled}
       onPress={onPress}
     >

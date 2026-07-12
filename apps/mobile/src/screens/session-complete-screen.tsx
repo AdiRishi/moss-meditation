@@ -12,7 +12,7 @@ import { type Feeling } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useCompletionSounds } from "@/hooks/use-completion-sounds";
 import { useThemeColors } from "@/hooks/use-theme-colors";
-import { impactHaptic, selectionHaptic } from "@/lib/haptics";
+import { impactHaptic } from "@/lib/haptics";
 import { useMeditation } from "@/providers/meditation-provider";
 
 const FEELINGS: readonly { id: Feeling; label: string }[] = [
@@ -41,7 +41,7 @@ export function SessionCompleteScreen() {
     }
     completionSoundStarted.current = true;
     impactHaptic();
-    void play(sessionCompletionSound);
+    void play(sessionCompletionSound).catch(() => undefined);
   }, [play, playSound, sessionCompletionSound, sessionId]);
 
   useEffect(() => {
@@ -97,22 +97,21 @@ export function SessionCompleteScreen() {
         <Typography tone="muted" align="center">
           How do you feel?
         </Typography>
-        <View className="flex-row flex-wrap justify-center gap-2">
+        <View accessibilityRole="radiogroup" className="flex-row flex-wrap justify-center gap-2">
           {FEELINGS.map((feeling) => {
             const isSelected = session.feeling === feeling.id;
             return (
               <Pressable
                 key={feeling.id}
                 accessibilityRole="radio"
-                accessibilityState={{ disabled: action.isPending, selected: isSelected }}
+                accessibilityState={{ checked: isSelected, disabled: action.isPending }}
                 className={`min-h-11 justify-center rounded-full border px-5 ${
                   isSelected ? "border-accent bg-accent-soft" : "border-stone"
                 }`}
                 disabled={action.isPending}
                 onPress={() => {
-                  selectionHaptic();
                   void action.run(async () => {
-                    await setSessionFeeling(session.id, isSelected ? null : feeling.id);
+                    await setSessionFeeling(session.id, feeling.id);
                   });
                 }}
               >

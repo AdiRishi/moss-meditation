@@ -8,7 +8,7 @@ import { DurationSelector } from "@/components/ui/zen/duration-selector";
 import { CompletionSoundRow, GroupedList } from "@/components/ui/zen/list-row";
 import { ScreenHeader } from "@/components/ui/zen/screen-header";
 import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
-import type { SESSION_DURATIONS } from "@/domain/meditation";
+import type { SessionDuration } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { impactHaptic } from "@/lib/haptics";
 import { useMeditation } from "@/providers/meditation-provider";
@@ -16,7 +16,7 @@ import { useMeditation } from "@/providers/meditation-provider";
 export function SessionSetupScreen() {
   const router = useRouter();
   const { activeSession, notificationPermission, pendingCompletion, preferences, startSession } = useMeditation();
-  const [duration, setDuration] = useState<(typeof SESSION_DURATIONS)[number]>(preferences.lastDurationMinutes);
+  const [duration, setDuration] = useState<SessionDuration>(preferences.lastDurationMinutes);
   const action = useAsyncAction();
 
   if (pendingCompletion) {

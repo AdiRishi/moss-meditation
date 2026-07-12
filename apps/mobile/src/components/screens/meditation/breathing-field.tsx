@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { useEffect } from "react";
+import { useWindowDimensions } from "react-native";
 import Animated, {
   Easing,
   cancelAnimation,
@@ -16,9 +17,16 @@ type BreathingFieldProps = {
   ending: boolean;
 };
 
+const MAX_FIELD_SIZE = 330;
+const MAX_BREATHING_SCALE = 1.035;
+const IMAGE_OVERSCAN_RATIO = 350 / MAX_FIELD_SIZE;
+
 export function BreathingField({ reducedMotion, ending }: BreathingFieldProps) {
   const { theme } = useUniwind();
+  const { width } = useWindowDimensions();
   const breath = useSharedValue(0);
+  const fieldSize = Math.min(MAX_FIELD_SIZE, (width - 48) / MAX_BREATHING_SCALE);
+  const imageSize = fieldSize * IMAGE_OVERSCAN_RATIO;
 
   useEffect(() => {
     cancelAnimation(breath);
@@ -43,15 +51,15 @@ export function BreathingField({ reducedMotion, ending }: BreathingFieldProps) {
     opacity: interpolate(breath.get(), [0, 1], ending ? [0.58, 0.7] : [0.82, 1]),
     transform: [
       {
-        scale: interpolate(breath.get(), [0, 1], ending ? [0.74, 0.79] : [0.96, 1.035]),
+        scale: interpolate(breath.get(), [0, 1], ending ? [0.74, 0.79] : [0.96, MAX_BREATHING_SCALE]),
       },
     ],
   }));
 
   return (
     <Animated.View
-      className="size-[330px] items-center justify-center overflow-hidden"
-      style={animatedStyle}
+      className="items-center justify-center overflow-hidden"
+      style={[{ height: fieldSize, width: fieldSize }, animatedStyle]}
       accessibilityElementsHidden
     >
       <Image
@@ -61,7 +69,7 @@ export function BreathingField({ reducedMotion, ending }: BreathingFieldProps) {
             : require("../../../../assets/images/zen-breathing-field.png")
         }
         contentFit="contain"
-        style={{ height: 350, width: 350 }}
+        style={{ height: imageSize, width: imageSize }}
       />
     </Animated.View>
   );

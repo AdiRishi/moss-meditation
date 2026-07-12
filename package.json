@@ -8,7 +8,6 @@
     "prebuild": "pnpm --filter @repo/mobile exec expo prebuild --clean",
     "android": "pnpm --filter @repo/mobile android",
     "ios": "pnpm --filter @repo/mobile ios",
-    "web": "pnpm --filter @repo/mobile web",
     "compile": "turbo run compile",
     "lint": "pnpm run lint:app && pnpm run lint:server",
     "lint:app": "turbo run lint --filter=@repo/mobile",

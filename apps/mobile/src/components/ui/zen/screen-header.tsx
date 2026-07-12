@@ -18,7 +18,7 @@ export function ScreenHeader({ title, onBack, backLabel = "Back", trailing }: Sc
   const colors = useThemeColors();
 
   return (
-    <View className="h-14 flex-row items-center justify-between">
+    <View className="min-h-14 flex-row items-center justify-between py-1">
       <Pressable
         accessibilityLabel={backLabel}
         accessibilityRole="button"

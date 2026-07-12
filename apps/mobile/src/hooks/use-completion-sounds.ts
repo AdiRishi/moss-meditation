@@ -1,11 +1,28 @@
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { CompletionSound } from "@/domain/meditation";
 
 const SOFT_CHIME = require("../../assets/sounds/soft_chime.wav");
 const LOW_BOWL = require("../../assets/sounds/low_bowl.wav");
 const WOOD_TONE = require("../../assets/sounds/wood_tone.wav");
+
+let audioModePromise: Promise<void> | null = null;
+
+function ensurePlaybackAudioMode() {
+  if (!audioModePromise) {
+    audioModePromise = setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      interruptionMode: "mixWithOthers",
+    }).catch((error: unknown) => {
+      audioModePromise = null;
+      throw error;
+    });
+  }
+
+  return audioModePromise;
+}
 
 export function useCompletionSounds() {
   const softChime = useAudioPlayer(SOFT_CHIME);
@@ -15,14 +32,6 @@ export function useCompletionSounds() {
   const lowBowlStatus = useAudioPlayerStatus(lowBowl);
   const woodToneStatus = useAudioPlayerStatus(woodTone);
   const [playingSound, setPlayingSound] = useState<CompletionSound | null>(null);
-
-  useEffect(() => {
-    void setAudioModeAsync({
-      playsInSilentMode: true,
-      shouldPlayInBackground: false,
-      interruptionMode: "mixWithOthers",
-    });
-  }, []);
 
   const stop = useCallback(async () => {
     softChime.pause();
@@ -34,6 +43,7 @@ export function useCompletionSounds() {
 
   const play = useCallback(
     async (sound: CompletionSound) => {
+      await ensurePlaybackAudioMode();
       await stop();
       const player = sound === "soft-chime" ? softChime : sound === "low-bowl" ? lowBowl : woodTone;
       setPlayingSound(sound);

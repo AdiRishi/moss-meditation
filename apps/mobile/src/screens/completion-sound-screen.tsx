@@ -8,9 +8,9 @@ import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
 import { ZenCard } from "@/components/ui/zen/zen-card";
 import { ZenIcon, type ZenIconName } from "@/components/ui/zen/zen-icon";
 import { COMPLETION_SOUNDS, type CompletionSound } from "@/domain/meditation";
+import { useAsyncAction } from "@/hooks/use-async-action";
 import { useCompletionSounds } from "@/hooks/use-completion-sounds";
 import { useThemeColors } from "@/hooks/use-theme-colors";
-import { selectionHaptic } from "@/lib/haptics";
 import { useMeditation } from "@/providers/meditation-provider";
 
 function soundIcon(sound: CompletionSound): ZenIconName {
@@ -22,16 +22,16 @@ export function CompletionSoundScreen() {
   const colors = useThemeColors();
   const { preferences, savePreferences } = useMeditation();
   const { play, playingSound, stop } = useCompletionSounds();
+  const action = useAsyncAction();
   const selected = preferences.completionSound;
 
-  const select = async (sound: CompletionSound) => {
-    selectionHaptic();
-    await savePreferences({ ...preferences, completionSound: sound });
-  };
+  const select = (sound: CompletionSound) =>
+    action.run(() => savePreferences({ ...preferences, completionSound: sound }));
 
   const done = async () => {
-    await stop();
-    router.back();
+    if (await action.run(stop)) {
+      router.back();
+    }
   };
 
   return (
@@ -44,7 +44,7 @@ export function CompletionSoundScreen() {
           </Typography>
           <Typography tone="accent">Played once, when your time is complete.</Typography>
         </View>
-        <View className="gap-4">
+        <View accessibilityRole="radiogroup" className="gap-4">
           {COMPLETION_SOUNDS.map((sound) => {
             const isSelected = selected === sound.id;
             const isPlaying = playingSound === sound.id;
@@ -52,9 +52,10 @@ export function CompletionSoundScreen() {
               <ZenCard key={sound.id} className="min-h-20 flex-row items-center px-4 py-3">
                 <Pressable
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: isSelected }}
+                  accessibilityState={{ checked: isSelected, disabled: action.isPending }}
                   accessibilityLabel={sound.label}
                   className="min-h-14 flex-1 flex-row items-center gap-4"
+                  disabled={action.isPending}
                   onPress={() => void select(sound.id)}
                 >
                   <View className="size-11 items-center justify-center rounded-full bg-surface-secondary">
@@ -70,8 +71,10 @@ export function CompletionSoundScreen() {
                 <Pressable
                   accessibilityLabel={`${isPlaying ? "Stop" : "Preview"} ${sound.label}`}
                   accessibilityRole="button"
+                  accessibilityState={{ disabled: action.isPending }}
                   className="ml-3 size-11 items-center justify-center rounded-full border border-stone"
-                  onPress={() => void (isPlaying ? stop() : play(sound.id))}
+                  disabled={action.isPending}
+                  onPress={() => void action.run(() => (isPlaying ? stop() : play(sound.id)))}
                 >
                   <ZenIcon name={isPlaying ? "pause" : "play"} size={16} tintColor={colors.foreground} />
                 </Pressable>
@@ -80,7 +83,16 @@ export function CompletionSoundScreen() {
           })}
         </View>
       </View>
-      <ZenPrimaryButton onPress={() => void done()}>Done</ZenPrimaryButton>
+      <View className="gap-3">
+        {action.error ? (
+          <Typography variant="small" tone="danger" accessibilityLiveRegion="polite" align="center" selectable>
+            That action couldn’t be completed. Please try again.
+          </Typography>
+        ) : null}
+        <ZenPrimaryButton isDisabled={action.isPending} onPress={() => void done()}>
+          {action.isPending ? "Working…" : "Done"}
+        </ZenPrimaryButton>
+      </View>
     </StandardScrollView>
   );
 }

@@ -2,7 +2,7 @@ import { SymbolView } from "expo-symbols";
 import { Button, Card, useThemeColor } from "heroui-native";
 import { View } from "react-native";
 
-import { StandardView } from "@/components/ui/screen-containers/standard-view";
+import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
 import { Typography } from "@/components/ui/typography";
 
 type ErrorDetails = {
@@ -28,7 +28,7 @@ export function GenericErrorScreen({
   const danger = useThemeColor("danger");
 
   return (
-    <StandardView className="flex-1 items-center justify-center gap-6">
+    <StandardScrollView contentContainerClassName="min-h-full items-center justify-center gap-6 py-8">
       <View className="size-24 items-center justify-center rounded-full bg-danger/10">
         <SymbolView
           name={{ ios: "exclamationmark.triangle", android: "warning", web: "warning" }}
@@ -41,7 +41,7 @@ export function GenericErrorScreen({
         <Typography accessibilityRole="header" variant="h2" align="center">
           {title}
         </Typography>
-        <Typography variant="small" tone="muted" align="center" className="max-w-75">
+        <Typography variant="small" tone="muted" align="center" className="max-w-75" selectable>
           {message}
         </Typography>
       </View>
@@ -70,7 +70,7 @@ export function GenericErrorScreen({
             {errorDetails.status != null && (
               <View className="flex-row justify-between">
                 <Typography variant="caption">Status</Typography>
-                <Typography variant="code" numberOfLines={2} className="ml-4 shrink text-right">
+                <Typography variant="code" numberOfLines={2} className="ml-4 shrink text-right" selectable>
                   {errorDetails.status}
                 </Typography>
               </View>
@@ -91,6 +91,6 @@ export function GenericErrorScreen({
           </Button>
         )}
       </View>
-    </StandardView>
+    </StandardScrollView>
   );
 }

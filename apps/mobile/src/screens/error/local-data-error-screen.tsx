@@ -3,7 +3,7 @@ import { Button } from "heroui-native";
 import { useEffect } from "react";
 import { View } from "react-native";
 
-import { StandardView } from "@/components/ui/screen-containers/standard-view";
+import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
 import { Typography } from "@/components/ui/typography";
 
 type LocalDataErrorScreenProps = {
@@ -17,12 +17,12 @@ export function LocalDataErrorScreen({ onRetry, onReset }: LocalDataErrorScreenP
   }, []);
 
   return (
-    <StandardView className="flex-1 justify-center gap-8">
+    <StandardScrollView contentContainerClassName="min-h-full justify-center gap-8 py-8">
       <View className="gap-3">
         <Typography accessibilityRole="header" variant="h1">
           Your practice data needs a moment.
         </Typography>
-        <Typography tone="muted">
+        <Typography tone="muted" selectable>
           Zen could not open its local storage. You can try again without changing anything.
         </Typography>
       </View>
@@ -37,6 +37,6 @@ export function LocalDataErrorScreen({ onRetry, onReset }: LocalDataErrorScreenP
           Reset removes settings and practice history stored on this device.
         </Typography>
       </View>
-    </StandardView>
+    </StandardScrollView>
   );
 }

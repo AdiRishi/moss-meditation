@@ -71,7 +71,9 @@ export function OnboardingScheduleScreen() {
           </ZenSecondaryButton>
         </View>
       </StandardScrollView>
-      <TimePickerSheet practiceTime={editingTime} onChange={updateTime} onClose={() => setEditingId(null)} />
+      {editingTime ? (
+        <TimePickerSheet practiceTime={editingTime} onChange={updateTime} onClose={() => setEditingId(null)} />
+      ) : null}
     </>
   );
 }

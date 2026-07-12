@@ -35,7 +35,6 @@ pnpm run format           # Oxfmt write
 pnpm run server:dev       # Start Nitro API server on localhost:3000
 pnpm ios                  # Build and start the iOS app / simulator
 pnpm android              # Start the Android app server / emulator
-pnpm web                  # Start Expo web
 
 pnpm run prebuild         # Regenerate native projects
 ```

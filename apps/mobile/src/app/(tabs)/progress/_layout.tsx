@@ -1,5 +1,9 @@
 import { Stack } from "expo-router";
 
+import { useMeditation } from "@/providers/meditation-provider";
+
 export default function ProgressLayout() {
-  return <Stack screenOptions={{ headerShown: false, animation: "fade" }} />;
+  const { reducedMotion } = useMeditation();
+
+  return <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? "none" : "fade" }} />;
 }

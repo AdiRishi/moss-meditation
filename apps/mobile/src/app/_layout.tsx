@@ -15,12 +15,18 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AppProviders } from "@/components/app-providers";
 import "@/global.css";
+import { useMeditation } from "@/providers/meditation-provider";
 import { GenericErrorScreen } from "@/screens/error/generic-error-screen";
 import { configureForegroundNotificationHandling } from "@/services/local-notifications";
 
 void SplashScreen.preventAutoHideAsync();
+configureForegroundNotificationHandling();
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    void SplashScreen.hideAsync();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -39,6 +45,17 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
+function RootNavigator() {
+  const { reducedMotion } = useMeditation();
+
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? "none" : "fade" }}>
+      <Stack.Screen name="meditation" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="session-complete" options={{ gestureEnabled: false }} />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Geist_400Regular,
@@ -48,10 +65,6 @@ export default function RootLayout() {
     Newsreader_500Medium,
   });
 
-  useEffect(() => {
-    configureForegroundNotificationHandling();
-  }, []);
-
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -59,10 +72,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProviders>
-        <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
-          <Stack.Screen name="meditation" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="session-complete" options={{ gestureEnabled: false }} />
-        </Stack>
+        <RootNavigator />
       </AppProviders>
     </GestureHandlerRootView>
   );

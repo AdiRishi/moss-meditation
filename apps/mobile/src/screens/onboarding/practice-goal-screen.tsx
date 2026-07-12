@@ -10,7 +10,6 @@ import { WeekdaySelector } from "@/components/ui/zen/weekday-selector";
 import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
 import type { Weekday } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { selectionHaptic } from "@/lib/haptics";
 import { useMeditation } from "@/providers/meditation-provider";
 
 const WEEKDAY_ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
@@ -23,7 +22,6 @@ export function PracticeGoalScreen() {
   const action = useAsyncAction();
 
   const setDayCount = (count: number) => {
-    selectionHaptic();
     const next = WEEKDAY_ORDER.filter((day) => selectedWeekdays.includes(day)).slice(0, count);
     for (const day of WEEKDAY_ORDER) {
       if (next.length >= count) {
@@ -58,13 +56,7 @@ export function PracticeGoalScreen() {
           How often would you{"\n"}like to sit?
         </Typography>
         <View className="gap-4">
-          <WeekdaySelector
-            selected={selectedWeekdays}
-            onChange={(value) => {
-              selectionHaptic();
-              setSelectedWeekdays(value);
-            }}
-          />
+          <WeekdaySelector selected={selectedWeekdays} onChange={setSelectedWeekdays} />
           <Typography variant="small" tone="muted">
             Your intended practice days
           </Typography>
@@ -83,10 +75,7 @@ export function PracticeGoalScreen() {
             label={sessionsPerDay === 1 ? "session on practice days" : "sessions on practice days"}
             minimum={1}
             maximum={3}
-            onChange={(value) => {
-              selectionHaptic();
-              setSessionsPerDay(value);
-            }}
+            onChange={setSessionsPerDay}
           />
         </View>
       </View>

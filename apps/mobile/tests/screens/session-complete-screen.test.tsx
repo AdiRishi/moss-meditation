@@ -62,4 +62,24 @@ describe("SessionCompleteScreen", () => {
     ]);
     expect(mockStop).toHaveBeenCalled();
   });
+
+  it("keeps a selected feeling when it is pressed again", async () => {
+    const store = new InMemoryMeditationStore({ completedSessions: [completedSession()] });
+    const { getByText } = renderMeditationScreen(<SessionCompleteScreen />, { store });
+
+    await waitFor(() => getByText("Session complete."));
+    fireEvent.press(getByText("Calm"));
+    await waitFor(async () => {
+      await expect(store.listCompletedSessions()).resolves.toEqual([
+        expect.objectContaining({ id: "completed-session", feeling: "calm" }),
+      ]);
+    });
+
+    fireEvent.press(getByText("Calm"));
+    await waitFor(async () => {
+      await expect(store.listCompletedSessions()).resolves.toEqual([
+        expect.objectContaining({ id: "completed-session", feeling: "calm" }),
+      ]);
+    });
+  });
 });

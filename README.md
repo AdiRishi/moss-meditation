@@ -45,7 +45,7 @@ The complete foundation lives in the repository:
 
 ## Engineering
 
-Zen is a TypeScript monorepo built for iOS, Android, and the web. The mobile app uses Expo and React Native, keeps preferences and practice history in on-device SQLite, and does not require an account or server connection. The repository’s Nitro workspace remains independently available for future or separate server work.
+Zen is a TypeScript monorepo built for iOS and Android. The mobile app uses Expo and React Native, keeps preferences and practice history in on-device SQLite, and does not require an account or server connection. The repository’s Nitro workspace remains independently available for future or separate server work.
 
 | Layer     | Technology                                             |
 | --------- | ------------------------------------------------------ |
@@ -74,7 +74,6 @@ pnpm ios
 
 # Or:
 pnpm android
-pnpm web
 ```
 
 ## Everyday commands

@@ -1,17 +1,17 @@
 import { Pressable, View } from "react-native";
 
-import { SESSION_DURATIONS } from "@/domain/meditation";
+import { SESSION_DURATIONS, type SessionDuration } from "@/domain/meditation";
 
 import { Typography } from "../typography";
 
 type DurationSelectorProps = {
-  value: number;
-  onChange: (value: (typeof SESSION_DURATIONS)[number]) => void;
+  value: SessionDuration;
+  onChange: (value: SessionDuration) => void;
 };
 
 export function DurationSelector({ value, onChange }: DurationSelectorProps) {
   return (
-    <View className="flex-row flex-wrap justify-center gap-5">
+    <View accessibilityRole="radiogroup" className="flex-row flex-wrap justify-center gap-5">
       {SESSION_DURATIONS.map((duration) => {
         const isSelected = value === duration;
         return (
@@ -19,7 +19,7 @@ export function DurationSelector({ value, onChange }: DurationSelectorProps) {
             key={duration}
             accessibilityLabel={`${duration} minutes`}
             accessibilityRole="radio"
-            accessibilityState={{ selected: isSelected }}
+            accessibilityState={{ checked: isSelected }}
             className={`min-h-[76px] w-[76px] items-center justify-center rounded-full border px-1 py-2 ${
               isSelected ? "border-[3px] border-accent" : "border-stone"
             }`}

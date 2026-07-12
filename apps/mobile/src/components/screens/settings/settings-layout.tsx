@@ -21,7 +21,7 @@ function SettingsTitle({ title, showBack }: Pick<SettingsScreenLayoutProps, "tit
   }
 
   return (
-    <View className="h-14 items-center justify-center">
+    <View className="min-h-14 items-center justify-center py-2">
       <Typography accessibilityRole="header" variant="h4" align="center" className="font-serif font-normal">
         {title}
       </Typography>

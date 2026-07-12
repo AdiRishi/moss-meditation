@@ -33,7 +33,7 @@ export function MeditationScreen() {
   const { error: transitionError, isPending: transitionPending, run: runTransition } = useAsyncAction();
 
   useEffect(() => {
-    const interval = setInterval(() => setNowMs(Date.now()), 250);
+    const interval = setInterval(() => setNowMs(Date.now()), 1_000);
     return () => clearInterval(interval);
   }, []);
 

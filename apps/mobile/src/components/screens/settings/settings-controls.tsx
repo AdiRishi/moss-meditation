@@ -259,7 +259,7 @@ export function ReminderTimeControls({
                     key={minutes}
                     accessibilityLabel={`${time.label}, ${reminderLeadLabel(minutes)}`}
                     accessibilityRole="radio"
-                    accessibilityState={{ disabled: isDisabled, selected: isSelected }}
+                    accessibilityState={{ checked: isSelected, disabled: isDisabled }}
                     className={`min-h-11 justify-center rounded-full border px-3 ${
                       isSelected ? "border-accent bg-accent-soft" : "border-border bg-transparent"
                     }`}
@@ -400,7 +400,7 @@ export function AppearanceChoiceList({
             <Pressable
               accessibilityLabel={`${option.label} appearance`}
               accessibilityRole="radio"
-              accessibilityState={{ disabled, selected: isSelected }}
+              accessibilityState={{ checked: isSelected, disabled }}
               className="min-h-16 flex-row items-center gap-3 px-4 py-3"
               disabled={disabled}
               onPress={() => onChange(option.value)}

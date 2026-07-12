@@ -7,17 +7,6 @@ export const shortTimeFormatter = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
-export const monthYearFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "long",
-  year: "numeric",
-});
-
-export const sessionDateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  weekday: "short",
-  hour: "numeric",
-  minute: "2-digit",
-});
-
 const weekdayFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
 });
@@ -39,7 +28,7 @@ export function fromLocalDateKey(key: string) {
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
-export function startOfLocalDay(timeMs: number) {
+function startOfLocalDay(timeMs: number) {
   const date = new Date(timeMs);
   date.setHours(0, 0, 0, 0);
   return date.getTime();
