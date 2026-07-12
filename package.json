@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "pnpm --filter @repo/mobile start --clear",
+    "start": "pnpm --filter @repo/mobile start",
     "prebuild": "pnpm --filter @repo/mobile exec expo prebuild --clean",
     "android": "pnpm --filter @repo/mobile android",
     "ios": "pnpm --filter @repo/mobile ios",

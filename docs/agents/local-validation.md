@@ -40,11 +40,11 @@ Before the final response, stop Metro, app/log sessions, and the simulator mirro
 Stop only the device-scoped simulator stream started for this validation:
 
 ```bash
-npx --yes serve-sim@latest --list
-npx --yes serve-sim@latest --kill <simulator-udid>
+pnpm --filter @repo/mobile exec serve-sim --list
+pnpm --filter @repo/mobile exec serve-sim --kill <simulator-udid>
 ```
 
-Run `npx --yes serve-sim@latest --list` again and confirm that it no longer lists the simulator used for this validation. Other device-scoped streams may belong to another task and must be left running. Never use an unscoped `serve-sim --kill`.
+Run `pnpm --filter @repo/mobile exec serve-sim --list` again and confirm that it no longer lists the simulator used for this validation. Other device-scoped streams may belong to another task and must be left running. Never use an unscoped `serve-sim --kill`.
 
 After stopping Metro, verify its standard port is clear:
 
