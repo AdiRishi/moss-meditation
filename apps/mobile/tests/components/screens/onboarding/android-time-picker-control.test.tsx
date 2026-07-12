@@ -10,14 +10,27 @@ jest.mock("@react-native-community/datetimepicker", () => {
 
   return {
     __esModule: true,
-    default: ({ onChange, testID }: { onChange: (event: { type: string }, date: Date) => void; testID?: string }) =>
+    default: ({
+      onDismiss,
+      onValueChange,
+      testID,
+    }: {
+      onDismiss: () => void;
+      onValueChange: (event: unknown, date: Date) => void;
+      testID?: string;
+    }) =>
       React.createElement(
-        Pressable,
-        {
-          testID,
-          onPress: () => onChange({ type: "set" }, new Date(2026, 0, 1, 8, 35)),
-        },
-        React.createElement(Text, null, "Native time picker"),
+        React.Fragment,
+        null,
+        React.createElement(
+          Pressable,
+          {
+            testID,
+            onPress: () => onValueChange({}, new Date(2026, 0, 1, 8, 35)),
+          },
+          React.createElement(Text, null, "Select native time"),
+        ),
+        React.createElement(Pressable, { onPress: onDismiss }, React.createElement(Text, null, "Dismiss native time")),
       ),
   };
 });
@@ -31,7 +44,7 @@ const PRACTICE_TIME: PracticeTime = {
   reminderLeadMinutes: 10,
 };
 
-describe("TimePickerSheet on Android", () => {
+describe("AndroidTimePickerControl", () => {
   it("unmounts the native dialog after selection and lets the user reopen it", async () => {
     const onChange = jest.fn();
     const { getByTestId, getByText, queryByTestId } = renderWithSafeArea(
@@ -46,5 +59,19 @@ describe("TimePickerSheet on Android", () => {
 
     fireEvent.press(getByText("Change time"));
     getByTestId("onboarding.time-picker");
+  });
+
+  it("unmounts a dismissed dialog without changing the practice time", async () => {
+    const onChange = jest.fn();
+    const { getByTestId, getByText, queryByTestId } = renderWithSafeArea(
+      <AndroidTimePickerControl practiceTime={PRACTICE_TIME} onChange={onChange} />,
+    );
+
+    await waitFor(() => getByTestId("onboarding.time-picker"));
+    fireEvent.press(getByText("Dismiss native time"));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(queryByTestId("onboarding.time-picker")).toBeNull();
+    expect(getByText("Change time")).toBeOnTheScreen();
   });
 });

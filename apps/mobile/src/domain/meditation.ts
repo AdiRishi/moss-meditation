@@ -4,13 +4,8 @@ export const completionSoundSchema = z.enum(["soft-chime", "low-bowl", "wood-ton
 export const feelingSchema = z.enum(["calm", "clear", "grounded", "other"]);
 export const appearanceSchema = z.enum(["system", "light", "dark"]);
 export const onboardingStepSchema = z.enum(["welcome", "goal", "schedule", "reminders", "complete"]);
-export const sessionDurationSchema = z.union([
-  z.literal(5),
-  z.literal(10),
-  z.literal(15),
-  z.literal(20),
-  z.literal(30),
-]);
+export const SESSION_DURATIONS = [5, 10, 15, 20, 30] as const;
+export const sessionDurationSchema = z.literal(SESSION_DURATIONS);
 export const MAX_PRACTICE_TIMES = 4;
 export const weekdaySchema = z.union([
   z.literal(0),
@@ -56,6 +51,8 @@ export const activeSessionSchema = z.object({
   resumedAtMs: z.number().int().nonnegative().nullable(),
   status: z.enum(["running", "paused"]),
   completionSound: completionSoundSchema,
+  completionLocalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  completionTimezoneOffsetMinutes: z.number().int(),
 });
 
 export const completedSessionSchema = z
@@ -95,8 +92,6 @@ export const COMPLETION_SOUNDS: readonly { id: CompletionSound; label: string }[
   { id: "low-bowl", label: "Low bowl" },
   { id: "wood-tone", label: "Wood tone" },
 ];
-
-export const SESSION_DURATIONS = sessionDurationSchema.options.map((option) => option.value);
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   onboardingStep: "welcome",

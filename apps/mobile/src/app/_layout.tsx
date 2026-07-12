@@ -46,7 +46,13 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 function RootNavigator() {
-  const { reducedMotion } = useMeditation();
+  const { isReady, reducedMotion } = useMeditation();
+
+  useEffect(() => {
+    if (isReady) {
+      void SplashScreen.hideAsync();
+    }
+  }, [isReady]);
 
   return (
     <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? "none" : "fade" }}>

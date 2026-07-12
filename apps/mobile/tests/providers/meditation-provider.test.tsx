@@ -44,6 +44,10 @@ function createWrapper({
 }
 
 describe("MeditationProvider", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it("recovers an overdue session exactly once and keeps it pending until acknowledgment", async () => {
     const activeSession: ActiveSession = {
       id: "overdue-session",
@@ -53,6 +57,8 @@ describe("MeditationProvider", () => {
       resumedAtMs: STARTED_AT_MS,
       status: "running",
       completionSound: "soft-chime",
+      completionLocalDate: "2026-07-13",
+      completionTimezoneOffsetMinutes: new Date(STARTED_AT_MS + 5 * 60_000).getTimezoneOffset(),
     };
     const store = new InMemoryMeditationStore({ activeSession });
     const notifications = createNotifications();
@@ -131,17 +137,36 @@ describe("MeditationProvider", () => {
     await expect(store.loadActiveSession()).resolves.toMatchObject({ status: "running" });
   });
 
-  it("retries the initial reminder sync after local data is refreshed", async () => {
+  it("retries the initial reminder sync after a transient failure", async () => {
+    jest.useFakeTimers();
     const store = new InMemoryMeditationStore();
     const notifications = createNotifications();
     notifications.rescheduleWeeklyReminders
       .mockRejectedValueOnce(new Error("Scheduling unavailable"))
       .mockResolvedValue({ permissionStatus: "granted", scheduledCount: 0 });
     const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
-    const { result } = renderHook(useMeditation, { wrapper });
+    renderHook(useMeditation, { wrapper });
 
     await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(1));
-    await act(async () => result.current.refresh());
+    await act(async () => {
+      jest.advanceTimersByTime(5_000);
+    });
+
+    await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(2));
+  });
+
+  it("stops retrying reminder sync after the bounded recovery attempt", async () => {
+    jest.useFakeTimers();
+    const store = new InMemoryMeditationStore();
+    const notifications = createNotifications();
+    notifications.rescheduleWeeklyReminders.mockRejectedValue(new Error("Scheduling unavailable"));
+    const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
+    renderHook(useMeditation, { wrapper });
+
+    await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      jest.advanceTimersByTime(60_000);
+    });
 
     await waitFor(() => expect(notifications.rescheduleWeeklyReminders).toHaveBeenCalledTimes(2));
   });

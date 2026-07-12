@@ -4,19 +4,19 @@ import { View } from "react-native";
 import { Typography } from "@/components/ui/typography";
 import { ZenCard } from "@/components/ui/zen/zen-card";
 import { ZenIcon } from "@/components/ui/zen/zen-icon";
-import { addLocalDays, fromLocalDateKey, toLocalDateKey } from "@/domain/date-time";
+import {
+  addLocalDays,
+  formatWallClockTime,
+  fromLocalDateKey,
+  toLocalDateKey,
+  toWallClockTimeMs,
+} from "@/domain/date-time";
 import type { CompletedSession } from "@/domain/meditation";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 
 const SESSION_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
-const SESSION_TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
-
 function sessionWallClockMs(session: CompletedSession) {
-  return session.startedAtMs - session.timezoneOffsetMinutes * 60_000;
+  return toWallClockTimeMs(session.completedAtMs, session.timezoneOffsetMinutes);
 }
 
 function sessionLabel(session: CompletedSession) {
@@ -33,7 +33,7 @@ function sessionDateTime(session: CompletedSession, nowMs: number) {
         ? "Yesterday"
         : SESSION_DATE_FORMATTER.format(fromLocalDateKey(session.localDate));
 
-  return `${dateLabel}, ${SESSION_TIME_FORMATTER.format(sessionWallClockMs(session))}`;
+  return `${dateLabel}, ${formatWallClockTime(session.completedAtMs, session.timezoneOffsetMinutes)}`;
 }
 
 function SessionRow({ session, nowMs }: { session: CompletedSession; nowMs: number }) {

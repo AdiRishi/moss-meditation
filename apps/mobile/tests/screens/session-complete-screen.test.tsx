@@ -37,6 +37,14 @@ function completedSession(): CompletedSession {
   };
 }
 
+function travelledSession(): CompletedSession {
+  return {
+    ...completedSession(),
+    completedAtMs: Date.UTC(2026, 6, 13, 0, 10),
+    timezoneOffsetMinutes: -600,
+  };
+}
+
 describe("SessionCompleteScreen", () => {
   beforeEach(() => {
     mockReplace.mockClear();
@@ -81,5 +89,12 @@ describe("SessionCompleteScreen", () => {
         expect.objectContaining({ id: "completed-session", feeling: "calm" }),
       ]);
     });
+  });
+
+  it("shows the completion time in the timezone where the session ended", async () => {
+    const store = new InMemoryMeditationStore({ completedSessions: [travelledSession()] });
+    const { getByText } = renderMeditationScreen(<SessionCompleteScreen />, { store });
+
+    await waitFor(() => getByText(/10:10 AM/));
   });
 });

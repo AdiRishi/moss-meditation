@@ -53,10 +53,11 @@ class FakeNotificationsApi implements LocalNotificationsNativeApi {
   readonly cancelled: string[] = [];
   readonly channels: { id: string; input: NotificationChannelInput }[] = [];
   permissionRequest: NotificationPermissionsRequest | undefined;
+  permissionError: Error | null = null;
   scheduleFailureAt: number | null = null;
   scheduleGate: Promise<void> | null = null;
   scheduleGateAt: number | null = null;
-  getScheduledCalls = 0;
+  onScheduleAttempt: (() => void) | null = null;
   private scheduleAttempts = 0;
 
   constructor(currentPermission: NotificationPermissionsStatus, scheduled: ScheduledNotification[] = []) {
@@ -66,6 +67,9 @@ class FakeNotificationsApi implements LocalNotificationsNativeApi {
   }
 
   async getPermissionsAsync() {
+    if (this.permissionError) {
+      throw this.permissionError;
+    }
     return this.permission;
   }
 
@@ -76,12 +80,12 @@ class FakeNotificationsApi implements LocalNotificationsNativeApi {
   }
 
   async getAllScheduledNotificationsAsync() {
-    this.getScheduledCalls += 1;
     return this.scheduled;
   }
 
   async scheduleNotificationAsync(request: NotificationRequestInput) {
     this.scheduleAttempts += 1;
+    this.onScheduleAttempt?.();
     if (this.scheduleAttempts === this.scheduleFailureAt) {
       throw new Error("Scheduling unavailable");
     }
@@ -90,6 +94,7 @@ class FakeNotificationsApi implements LocalNotificationsNativeApi {
     }
     const identifier = request.identifier ?? `notification-${this.requests.length + 1}`;
     this.requests.push(request);
+    this.scheduled = this.scheduled.filter((notification) => notification.identifier !== identifier);
     this.scheduled.push({
       identifier,
       content: { data: request.content.data },
@@ -306,7 +311,12 @@ describe("LocalNotifications", () => {
           title: "Zen",
           body: "Your quiet pause is complete.",
           sound: "low_bowl.wav",
-          data: { zenNotificationKind: "session-completion", sessionId: "session-42" },
+          data: {
+            zenNotificationKind: "session-completion",
+            sessionId: "session-42",
+            scheduledAtMs: 1_800_000_000_000,
+            sound: "low-bowl",
+          },
         },
         trigger: {
           type: "date",
@@ -347,8 +357,9 @@ describe("LocalNotifications", () => {
       ),
     ).rejects.toThrow("Scheduling unavailable");
 
-    expect(nativeApi.cancelled).toEqual(["old-weekly", "zen.weekly-practice-reminder.2.0650"]);
+    expect(nativeApi.cancelled).toEqual(["zen.weekly-practice-reminder.2.0650"]);
     expect(nativeApi.scheduled.map((notification) => notification.identifier)).toEqual([
+      "old-weekly",
       "active-session",
       "another-app",
     ]);
@@ -375,7 +386,12 @@ describe("LocalNotifications", () => {
 
   it("serializes overlapping reminder replacements so the latest plan wins", async () => {
     let releaseFirstSchedule: (() => void) | undefined;
+    let signalFirstScheduleStarted: (() => void) | undefined;
     const nativeApi = new FakeNotificationsApi(permission("granted"));
+    const firstScheduleStarted = new Promise<void>((resolve) => {
+      signalFirstScheduleStarted = resolve;
+    });
+    nativeApi.onScheduleAttempt = () => signalFirstScheduleStarted?.();
     nativeApi.scheduleGateAt = 1;
     nativeApi.scheduleGate = new Promise((resolve) => {
       releaseFirstSchedule = resolve;
@@ -395,11 +411,8 @@ describe("LocalNotifications", () => {
     });
 
     const firstUpdate = notifications.rescheduleWeeklyReminders(monday);
-    await waitForScheduleAttempt(nativeApi);
+    await firstScheduleStarted;
     const secondUpdate = notifications.rescheduleWeeklyReminders(tuesday);
-
-    await Promise.resolve();
-    expect(nativeApi.getScheduledCalls).toBe(1);
 
     releaseFirstSchedule?.();
     await Promise.all([firstUpdate, secondUpdate]);
@@ -408,10 +421,99 @@ describe("LocalNotifications", () => {
       "zen.weekly-practice-reminder.3.0650",
     ]);
   });
-});
 
-async function waitForScheduleAttempt(nativeApi: FakeNotificationsApi) {
-  for (let attempt = 0; attempt < 10 && nativeApi.getScheduledCalls === 0; attempt += 1) {
-    await Promise.resolve();
-  }
-}
+  it("preserves a matching session alarm when notification services are temporarily unavailable", async () => {
+    const nativeApi = new FakeNotificationsApi(permission("granted"), [
+      {
+        identifier: "zen.session-completion.session-42",
+        content: {
+          data: {
+            zenNotificationKind: "session-completion",
+            sessionId: "session-42",
+            scheduledAtMs: 1_800_000_000_000,
+            sound: "low-bowl",
+          },
+        },
+      },
+    ]);
+    nativeApi.permissionError = new Error("Notification service unavailable");
+
+    await expect(
+      createLocalNotifications(nativeApi).syncSessionCompletion({
+        sessionId: "session-42",
+        scheduledAtMs: 1_800_000_000_000,
+        sound: "low-bowl",
+      }),
+    ).resolves.toBe(true);
+
+    expect(nativeApi.cancelled).toEqual([]);
+    expect(nativeApi.scheduled).toHaveLength(1);
+  });
+
+  it("replaces a stale completion alarm when a resumed session moves its deadline", async () => {
+    const nativeApi = new FakeNotificationsApi(permission("granted"), [
+      {
+        identifier: "zen.session-completion.session-42",
+        content: {
+          data: {
+            zenNotificationKind: "session-completion",
+            sessionId: "session-42",
+            scheduledAtMs: 1_800_000_000_000,
+            sound: "low-bowl",
+          },
+        },
+      },
+    ]);
+
+    await expect(
+      createLocalNotifications(nativeApi).syncSessionCompletion({
+        sessionId: "session-42",
+        scheduledAtMs: 1_800_000_300_000,
+        sound: "wood-tone",
+      }),
+    ).resolves.toBe(true);
+
+    expect(nativeApi.requests).toHaveLength(1);
+    expect(nativeApi.scheduled).toEqual([
+      {
+        identifier: "zen.session-completion.session-42",
+        content: {
+          data: {
+            zenNotificationKind: "session-completion",
+            sessionId: "session-42",
+            scheduledAtMs: 1_800_000_300_000,
+            sound: "wood-tone",
+          },
+        },
+      },
+    ]);
+  });
+
+  it("removes a stale completion alarm when its replacement cannot be scheduled", async () => {
+    const nativeApi = new FakeNotificationsApi(permission("granted"), [
+      {
+        identifier: "zen.session-completion.session-42",
+        content: {
+          data: {
+            zenNotificationKind: "session-completion",
+            sessionId: "session-42",
+            scheduledAtMs: 1_800_000_000_000,
+            sound: "low-bowl",
+          },
+        },
+      },
+    ]);
+    nativeApi.scheduleFailureAt = 1;
+
+    await expect(
+      createLocalNotifications(nativeApi).syncSessionCompletion({
+        sessionId: "session-42",
+        scheduledAtMs: 1_800_000_300_000,
+        sound: "low-bowl",
+      }),
+    ).rejects.toThrow("Scheduling unavailable");
+
+    expect(nativeApi.cancelled).toEqual(["zen.session-completion.session-42"]);
+    expect(nativeApi.scheduled).toEqual([]);
+  });
+});

@@ -7,6 +7,12 @@ export const shortTimeFormatter = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
+const wallClockTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "UTC",
+});
+
 const weekdayFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
 });
@@ -57,6 +63,14 @@ export function addLocalDays(timeMs: number, amount: number) {
 export function formatPracticeTime(time: Pick<PracticeTime, "hour" | "minute">) {
   const date = new Date(2026, 0, 1, time.hour, time.minute);
   return shortTimeFormatter.format(date);
+}
+
+export function toWallClockTimeMs(timeMs: number, timezoneOffsetMinutes: number) {
+  return timeMs - timezoneOffsetMinutes * 60_000;
+}
+
+export function formatWallClockTime(timeMs: number, timezoneOffsetMinutes: number) {
+  return wallClockTimeFormatter.format(toWallClockTimeMs(timeMs, timezoneOffsetMinutes));
 }
 
 export function formatScheduledPractice(scheduledAtMs: number, nowMs: number) {

@@ -7,7 +7,7 @@ import { Typography } from "@/components/ui/typography";
 import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
 import { ZenCard } from "@/components/ui/zen/zen-card";
 import { ZenIcon } from "@/components/ui/zen/zen-icon";
-import { shortTimeFormatter, toLocalDateKey } from "@/domain/date-time";
+import { formatWallClockTime, toLocalDateKey } from "@/domain/date-time";
 import { type Feeling } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useCompletionSounds } from "@/hooks/use-completion-sounds";
@@ -88,7 +88,7 @@ export function SessionCompleteScreen() {
           <View className="flex-row items-center gap-4">
             <ZenIcon name="calendar" size={22} tintColor={colors.muted} />
             <Typography selectable>
-              {dateLabel}, {shortTimeFormatter.format(new Date(session.completedAtMs))}
+              {dateLabel}, {formatWallClockTime(session.completedAtMs, session.timezoneOffsetMinutes)}
             </Typography>
           </View>
         </ZenCard>

@@ -9,7 +9,7 @@ import { useThemeColors } from "@/hooks/use-theme-colors";
 
 import { Typography } from "../typography";
 import { ZenCard } from "./zen-card";
-import { ZenIcon, type ZenIconName } from "./zen-icon";
+import { completionSoundIcon, ZenIcon, type ZenIconName } from "./zen-icon";
 
 type ZenListRowProps = {
   icon: ZenIconName;
@@ -111,10 +111,9 @@ export function CompletionSoundRow({
   onPress?: () => void;
   trailing?: React.ReactNode;
 }) {
-  const icon: ZenIconName = sound === "soft-chime" ? "bell" : sound === "low-bowl" ? "bowl" : "wood";
   return (
     <ZenListRow
-      icon={icon}
+      icon={completionSoundIcon(sound)}
       label="Completion sound"
       value={getCompletionSoundLabel(sound)}
       onPress={onPress}

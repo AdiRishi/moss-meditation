@@ -15,14 +15,18 @@ export function createActiveSession(input: {
   startedAtMs: number;
   completionSound: CompletionSound;
 }) {
+  const plannedDurationMs = input.durationMinutes * 60_000;
+  const completionAtMs = input.startedAtMs + plannedDurationMs;
   return activeSessionSchema.parse({
     id: input.id,
-    plannedDurationMs: input.durationMinutes * 60_000,
+    plannedDurationMs,
     startedAtMs: input.startedAtMs,
     accumulatedActiveMs: 0,
     resumedAtMs: input.startedAtMs,
     status: "running",
     completionSound: input.completionSound,
+    completionLocalDate: toLocalDateKey(completionAtMs),
+    completionTimezoneOffsetMinutes: new Date(completionAtMs).getTimezoneOffset(),
   });
 }
 
@@ -59,10 +63,13 @@ export function resumeSession(session: ActiveSession, nowMs: number): ActiveSess
     return session;
   }
 
+  const completionAtMs = nowMs + projectSession(session, nowMs).remainingMs;
   return {
     ...session,
     resumedAtMs: nowMs,
     status: "running",
+    completionLocalDate: toLocalDateKey(completionAtMs),
+    completionTimezoneOffsetMinutes: new Date(completionAtMs).getTimezoneOffset(),
   };
 }
 
@@ -82,8 +89,8 @@ export function completeSession(session: ActiveSession, nowMs: number): Complete
     id: session.id,
     startedAtMs: session.startedAtMs,
     completedAtMs,
-    localDate: toLocalDateKey(completedAtMs),
-    timezoneOffsetMinutes: new Date(completedAtMs).getTimezoneOffset(),
+    localDate: session.completionLocalDate,
+    timezoneOffsetMinutes: session.completionTimezoneOffsetMinutes,
     durationMs: session.plannedDurationMs,
     completionSound: session.completionSound,
     feeling: null,

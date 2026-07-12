@@ -50,9 +50,9 @@ export function SessionSetupScreen() {
             onPress={() => router.push({ pathname: "/completion-sound", params: { source: "session-setup" } })}
           />
         </GroupedList>
-        {notificationPermission === "granted" ? null : (
+        {notificationPermission === "granted" && process.env.EXPO_OS !== "android" ? null : (
           <Typography variant="small" tone="muted">
-            Keep Zen open during your session to hear the completion sound.
+            Keep Zen open for precise timing and to hear the completion sound.
           </Typography>
         )}
       </View>

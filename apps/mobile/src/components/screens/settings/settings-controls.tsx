@@ -1,7 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Separator } from "heroui-native";
 import { useState } from "react";
-import { Pressable, Switch, View } from "react-native";
+import { Pressable, Switch, useWindowDimensions, View } from "react-native";
 
 import { Typography } from "@/components/ui/typography";
 import { ZenCard } from "@/components/ui/zen/zen-card";
@@ -93,6 +93,28 @@ function TimePickerControl({
   );
 }
 
+function PracticeTimePicker({
+  time,
+  width,
+  onChange,
+}: {
+  time: PracticeTime;
+  width: number;
+  onChange: (date: Date) => void;
+}) {
+  return (
+    <TimePickerControl
+      accessibilityLabel={`${time.label} time`}
+      disabled={!time.enabled}
+      hour={time.hour}
+      minute={time.minute}
+      onChange={onChange}
+      testID={`schedule.${time.id}.time`}
+      width={width}
+    />
+  );
+}
+
 export function SessionsPerDayControl({ value, onChange }: { value: number; onChange: (value: number) => void }) {
   const colors = useThemeColors();
 
@@ -140,6 +162,8 @@ export function PracticeTimeControls({
   onChange: (times: PracticeTime[]) => void;
 }) {
   const colors = useThemeColors();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 360;
 
   const updateTime = (id: string, update: Partial<PracticeTime>) => {
     onChange(times.map((time) => (time.id === id ? { ...time, ...update } : time)));
@@ -150,32 +174,43 @@ export function PracticeTimeControls({
       {times.map((time, index) => (
         <View key={time.id}>
           {index > 0 ? <Separator /> : null}
-          <View className="min-h-20 flex-row items-center gap-3 px-4 py-3">
-            <View className="size-10 items-center justify-center rounded-full bg-surface-secondary">
-              <ZenIcon name={time.hour < 12 ? "sun" : "moon"} size={22} tintColor={colors.muted} />
+          <View className="min-h-20 gap-3 px-4 py-3">
+            <View className="flex-row items-center gap-3">
+              <View className="size-10 items-center justify-center rounded-full bg-surface-secondary">
+                <ZenIcon name={time.hour < 12 ? "sun" : "moon"} size={22} tintColor={colors.muted} />
+              </View>
+              <Typography variant="body" className="flex-1">
+                {time.label}
+              </Typography>
+              {isNarrow ? null : (
+                <PracticeTimePicker
+                  time={time}
+                  width={92}
+                  onChange={(date) => {
+                    updateTime(time.id, { hour: date.getHours(), minute: date.getMinutes() });
+                  }}
+                />
+              )}
+              <Switch
+                accessibilityLabel={`${time.label} practice time`}
+                accessibilityState={{ checked: time.enabled }}
+                ios_backgroundColor={colors.border}
+                onValueChange={(enabled) => updateTime(time.id, { enabled })}
+                trackColor={{ false: colors.border, true: colors.accent }}
+                value={time.enabled}
+              />
             </View>
-            <Typography variant="body" className="flex-1">
-              {time.label}
-            </Typography>
-            <TimePickerControl
-              accessibilityLabel={`${time.label} time`}
-              disabled={!time.enabled}
-              hour={time.hour}
-              minute={time.minute}
-              onChange={(date) => {
-                updateTime(time.id, { hour: date.getHours(), minute: date.getMinutes() });
-              }}
-              testID={`schedule.${time.id}.time`}
-              width={92}
-            />
-            <Switch
-              accessibilityLabel={`${time.label} practice time`}
-              accessibilityState={{ checked: time.enabled }}
-              ios_backgroundColor={colors.border}
-              onValueChange={(enabled) => updateTime(time.id, { enabled })}
-              trackColor={{ false: colors.border, true: colors.accent }}
-              value={time.enabled}
-            />
+            {isNarrow ? (
+              <View className="pl-[52px]">
+                <PracticeTimePicker
+                  time={time}
+                  width={112}
+                  onChange={(date) => {
+                    updateTime(time.id, { hour: date.getHours(), minute: date.getMinutes() });
+                  }}
+                />
+              </View>
+            ) : null}
           </View>
           {time.id === "morning" || time.id === "evening" ? null : (
             <Pressable

@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
+import { toLocalDateKey } from "@/domain/date-time";
 import {
   DEFAULT_PREFERENCES,
   activeSessionSchema,
@@ -28,6 +29,8 @@ type ActiveSessionRow = {
   resumed_at_ms: number | null;
   status: "running" | "paused";
   completion_sound: ActiveSession["completionSound"];
+  completion_local_date: string | null;
+  completion_timezone_offset_minutes: number | null;
 };
 
 type CompletedSessionRow = {
@@ -43,6 +46,11 @@ type CompletedSessionRow = {
 };
 
 function mapActiveSession(row: ActiveSessionRow) {
+  const remainingMs = Math.max(0, row.planned_duration_ms - row.accumulated_active_ms);
+  const completionAtMs =
+    row.status === "running" && row.resumed_at_ms !== null
+      ? row.resumed_at_ms + remainingMs
+      : row.started_at_ms + row.planned_duration_ms;
   return activeSessionSchema.parse({
     id: row.id,
     plannedDurationMs: row.planned_duration_ms,
@@ -51,6 +59,9 @@ function mapActiveSession(row: ActiveSessionRow) {
     resumedAtMs: row.resumed_at_ms,
     status: row.status,
     completionSound: row.completion_sound,
+    completionLocalDate: row.completion_local_date ?? toLocalDateKey(completionAtMs),
+    completionTimezoneOffsetMinutes:
+      row.completion_timezone_offset_minutes ?? new Date(completionAtMs).getTimezoneOffset(),
   });
 }
 
@@ -91,7 +102,8 @@ export class SQLiteMeditationStore implements MeditationStore {
   async loadActiveSession() {
     const row = await this.db.getFirstAsync<ActiveSessionRow>(
       `SELECT id, planned_duration_ms, started_at_ms, accumulated_active_ms,
-              resumed_at_ms, status, completion_sound
+              resumed_at_ms, status, completion_sound, completion_local_date,
+              completion_timezone_offset_minutes
        FROM active_session WHERE singleton_id = 1`,
     );
     return row ? mapActiveSession(row) : null;
@@ -120,8 +132,9 @@ export class SQLiteMeditationStore implements MeditationStore {
       await transaction.runAsync(
         `INSERT INTO active_session (
            singleton_id, id, planned_duration_ms, started_at_ms,
-           accumulated_active_ms, resumed_at_ms, status, completion_sound
-         ) VALUES (1, ?, ?, ?, ?, ?, ?, ?)`,
+           accumulated_active_ms, resumed_at_ms, status, completion_sound,
+           completion_local_date, completion_timezone_offset_minutes
+         ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         session.id,
         session.plannedDurationMs,
         session.startedAtMs,
@@ -129,6 +142,8 @@ export class SQLiteMeditationStore implements MeditationStore {
         session.resumedAtMs,
         session.status,
         session.completionSound,
+        session.completionLocalDate,
+        session.completionTimezoneOffsetMinutes,
       );
     });
     return session;
@@ -148,13 +163,14 @@ export class SQLiteMeditationStore implements MeditationStore {
     return next;
   }
 
-  async completeActiveSession(nowMs: number) {
+  async completeActiveSession(nowMs: number): Promise<CompletedSession | null> {
     let completed: CompletedSession | null = null;
 
     await this.db.withExclusiveTransactionAsync(async (transaction) => {
       const row = await transaction.getFirstAsync<ActiveSessionRow>(
         `SELECT id, planned_duration_ms, started_at_ms, accumulated_active_ms,
-                resumed_at_ms, status, completion_sound
+                resumed_at_ms, status, completion_sound, completion_local_date,
+                completion_timezone_offset_minutes
          FROM active_session WHERE singleton_id = 1`,
       );
       if (!row) {
@@ -232,11 +248,14 @@ export class SQLiteMeditationStore implements MeditationStore {
     const value = activeSessionSchema.parse(session);
     await this.db.runAsync(
       `UPDATE active_session
-       SET accumulated_active_ms = ?, resumed_at_ms = ?, status = ?
+       SET accumulated_active_ms = ?, resumed_at_ms = ?, status = ?,
+           completion_local_date = ?, completion_timezone_offset_minutes = ?
        WHERE singleton_id = 1`,
       value.accumulatedActiveMs,
       value.resumedAtMs,
       value.status,
+      value.completionLocalDate,
+      value.completionTimezoneOffsetMinutes,
     );
   }
 }

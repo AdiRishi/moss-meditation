@@ -1,5 +1,7 @@
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 
+import type { CompletionSound } from "@/domain/meditation";
+
 export type ZenIconName =
   | "home"
   | "progress"
@@ -54,6 +56,16 @@ const ICONS = {
 type ZenIconProps = Omit<SymbolViewProps, "name"> & {
   name: ZenIconName;
 };
+
+const COMPLETION_SOUND_ICONS = {
+  "soft-chime": "bell",
+  "low-bowl": "bowl",
+  "wood-tone": "wood",
+} as const satisfies Record<CompletionSound, ZenIconName>;
+
+export function completionSoundIcon(sound: CompletionSound): ZenIconName {
+  return COMPLETION_SOUND_ICONS[sound];
+}
 
 export function ZenIcon({ name, size = 22, weight = "light", ...props }: ZenIconProps) {
   return <SymbolView name={ICONS[name]} size={size} weight={weight} resizeMode="scaleAspectFit" {...props} />;

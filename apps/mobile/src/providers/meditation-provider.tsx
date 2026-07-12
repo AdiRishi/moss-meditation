@@ -43,7 +43,7 @@ type MeditationState = {
 };
 
 type MeditationContextValue = MeditationState & {
-  refresh(): Promise<void>;
+  refresh(): Promise<boolean>;
   savePreferences(preferences: AppPreferences): Promise<void>;
   startSession(durationMinutes: SessionDuration, completionSound?: CompletionSound): Promise<ActiveSession>;
   pauseSession(): Promise<ActiveSession>;
@@ -58,6 +58,8 @@ type MeditationContextValue = MeditationState & {
 };
 
 const MeditationContext = createContext<MeditationContextValue | null>(null);
+const INITIAL_REMINDER_RETRY_MS = 5_000;
+const MAX_INITIAL_REMINDER_SYNC_ATTEMPTS = 2;
 
 type MeditationProviderProps = {
   children: React.ReactNode;
@@ -131,7 +133,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
           pendingCompletion: pendingCompletion(completedSessions),
           notificationPermission,
         });
-        return;
+        return true;
       } catch (error) {
         if (refreshRevision !== stateRevision.current) {
           continue;
@@ -141,7 +143,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
           isReady: true,
           error: error instanceof Error ? error : new Error("Local practice data is unavailable."),
         }));
-        return;
+        return false;
       }
     }
   }, [clock, notifications, store]);
@@ -181,16 +183,38 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     ) {
       return;
     }
-    initialReminderSyncInFlight.current = true;
-    void notifications
-      .rescheduleWeeklyReminders(state.preferences)
-      .then(() => {
-        initialReminderSyncComplete.current = true;
-      })
-      .catch(() => undefined)
-      .finally(() => {
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+
+    const syncReminders = async () => {
+      attempts += 1;
+      initialReminderSyncInFlight.current = true;
+      try {
+        await notifications.rescheduleWeeklyReminders(state.preferences);
+        if (!cancelled) {
+          initialReminderSyncComplete.current = true;
+        }
+      } catch {
+        if (!cancelled && attempts < MAX_INITIAL_REMINDER_SYNC_ATTEMPTS) {
+          retryTimer = setTimeout(() => {
+            initialReminderSyncInFlight.current = false;
+            void syncReminders();
+          }, INITIAL_REMINDER_RETRY_MS);
+          return;
+        }
+      }
+      if (!cancelled) {
         initialReminderSyncInFlight.current = false;
-      });
+      }
+    };
+
+    void syncReminders();
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+      initialReminderSyncInFlight.current = false;
+    };
   }, [notifications, state.error, state.isReady, state.preferences]);
 
   const savePreferences = useCallback(

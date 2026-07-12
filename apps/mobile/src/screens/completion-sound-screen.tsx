@@ -6,16 +6,12 @@ import { Typography } from "@/components/ui/typography";
 import { ScreenHeader } from "@/components/ui/zen/screen-header";
 import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
 import { ZenCard } from "@/components/ui/zen/zen-card";
-import { ZenIcon, type ZenIconName } from "@/components/ui/zen/zen-icon";
+import { completionSoundIcon, ZenIcon } from "@/components/ui/zen/zen-icon";
 import { COMPLETION_SOUNDS, type CompletionSound } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useCompletionSounds } from "@/hooks/use-completion-sounds";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 import { useMeditation } from "@/providers/meditation-provider";
-
-function soundIcon(sound: CompletionSound): ZenIconName {
-  return sound === "soft-chime" ? "bell" : sound === "low-bowl" ? "bowl" : "wood";
-}
 
 export function CompletionSoundScreen() {
   const router = useRouter();
@@ -59,7 +55,7 @@ export function CompletionSoundScreen() {
                   onPress={() => void select(sound.id)}
                 >
                   <View className="size-11 items-center justify-center rounded-full bg-surface-secondary">
-                    <ZenIcon name={soundIcon(sound.id)} size={23} tintColor={colors.muted} />
+                    <ZenIcon name={completionSoundIcon(sound.id)} size={23} tintColor={colors.muted} />
                   </View>
                   <Typography className="flex-1">{sound.label}</Typography>
                   {isSelected ? (

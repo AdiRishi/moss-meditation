@@ -1,5 +1,4 @@
 import { Redirect } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
@@ -26,7 +25,6 @@ export function LaunchScreen() {
     if (!isReady) {
       return;
     }
-    void SplashScreen.hideAsync();
     const timeout = setTimeout(() => setBrandMomentComplete(true), 1_100);
     return () => clearTimeout(timeout);
   }, [isReady]);

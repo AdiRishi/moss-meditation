@@ -8,6 +8,8 @@ const SESSION_COMPLETION_BODY = "Your quiet pause is complete.";
 const NOTIFICATION_KIND_KEY = "zenNotificationKind";
 const WEEKLY_REMINDER_KIND = "weekly-practice-reminder";
 const SESSION_COMPLETION_KIND = "session-completion";
+const SESSION_COMPLETION_TIME_KEY = "scheduledAtMs";
+const SESSION_COMPLETION_SOUND_KEY = "sound";
 const REMINDER_CHANNEL_ID = "zen-practice-reminders";
 const SESSION_COMPLETION_CHANNEL_PREFIX = "zen-session-completion";
 const MINUTES_PER_DAY = 24 * 60;
@@ -150,6 +152,16 @@ function sessionCompletionChannelId(sound: CompletionSound) {
   return `${SESSION_COMPLETION_CHANNEL_PREFIX}.${sound}`;
 }
 
+function matchesSessionCompletion(notification: ScheduledNotificationSummary, desired: SessionCompletionNotification) {
+  const data = notification.content.data;
+  return (
+    notification.identifier === sessionCompletionIdentifier(desired.sessionId) &&
+    data?.sessionId === desired.sessionId &&
+    data?.[SESSION_COMPLETION_TIME_KEY] === desired.scheduledAtMs &&
+    data?.[SESSION_COMPLETION_SOUND_KEY] === desired.sound
+  );
+}
+
 export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi): LocalNotifications {
   let mutationQueue = Promise.resolve();
 
@@ -165,15 +177,16 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
     });
   }
 
-  async function cancelManagedNotifications(kind?: ZenNotificationKind) {
+  async function getManagedNotifications(kind?: ZenNotificationKind) {
     const scheduled = await nativeApi.getAllScheduledNotificationsAsync();
-    const identifiers = scheduled
+    return scheduled
       .filter((notification) => isManagedNotification(notification, kind))
-      .map((notification) => notification.identifier)
-      .sort();
+      .sort((left, right) => left.identifier.localeCompare(right.identifier));
+  }
 
-    for (const identifier of identifiers) {
-      await nativeApi.cancelScheduledNotificationAsync(identifier);
+  async function cancelNotifications(notifications: readonly ScheduledNotificationSummary[]) {
+    for (const notification of notifications) {
+      await nativeApi.cancelScheduledNotificationAsync(notification.identifier);
     }
   }
 
@@ -214,6 +227,8 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
         data: {
           [NOTIFICATION_KIND_KEY]: SESSION_COMPLETION_KIND,
           sessionId,
+          [SESSION_COMPLETION_TIME_KEY]: scheduledAtMs,
+          [SESSION_COMPLETION_SOUND_KEY]: sound,
         },
       },
       trigger: {
@@ -244,19 +259,25 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
 
     async rescheduleWeeklyReminders(preferences) {
       return serializeMutation(async () => {
-        await cancelManagedNotifications(WEEKLY_REMINDER_KIND);
         const permissionStatus = await getPermissionStatus();
         const plans = preferences.remindersEnabled ? buildReminderPlans(preferences) : [];
+        const existing = await getManagedNotifications(WEEKLY_REMINDER_KIND);
 
         if (permissionStatus !== "granted" || plans.length === 0) {
+          await cancelNotifications(existing);
           return { permissionStatus, scheduledCount: 0 };
         }
 
         await ensureReminderChannel();
+        const desiredIdentifiers = new Set(plans.map((plan) => plan.identifier));
+        const existingIdentifiers = new Set(existing.map((notification) => notification.identifier));
         const scheduledIdentifiers: string[] = [];
 
         try {
           for (const plan of plans) {
+            if (existingIdentifiers.has(plan.identifier)) {
+              continue;
+            }
             const identifier = await nativeApi.scheduleNotificationAsync({
               identifier: plan.identifier,
               content: {
@@ -282,19 +303,44 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
           throw error;
         }
 
-        return { permissionStatus, scheduledCount: scheduledIdentifiers.length };
+        await cancelNotifications(existing.filter((notification) => !desiredIdentifiers.has(notification.identifier)));
+        return { permissionStatus, scheduledCount: plans.length };
       });
     },
 
     async syncSessionCompletion(notification) {
       return serializeMutation(async () => {
-        await cancelManagedNotifications(SESSION_COMPLETION_KIND);
-        return notification ? scheduleSessionCompletion(notification) : false;
+        const existing = await getManagedNotifications(SESSION_COMPLETION_KIND);
+        if (!notification) {
+          await cancelNotifications(existing);
+          return false;
+        }
+
+        const desiredIdentifier = sessionCompletionIdentifier(notification.sessionId);
+        const matching = existing.find((scheduled) => matchesSessionCompletion(scheduled, notification));
+        if (matching) {
+          await cancelNotifications(existing.filter((scheduled) => scheduled.identifier !== desiredIdentifier));
+          return true;
+        }
+
+        let scheduled: boolean;
+        try {
+          scheduled = await scheduleSessionCompletion(notification);
+        } catch (error) {
+          await Promise.allSettled(existing.map((item) => nativeApi.cancelScheduledNotificationAsync(item.identifier)));
+          throw error;
+        }
+        if (!scheduled) {
+          await cancelNotifications(existing);
+          return false;
+        }
+        await cancelNotifications(existing.filter((item) => item.identifier !== desiredIdentifier));
+        return true;
       });
     },
 
     async clearAllManagedNotifications() {
-      await serializeMutation(() => cancelManagedNotifications());
+      await serializeMutation(async () => cancelNotifications(await getManagedNotifications()));
     },
   };
 }

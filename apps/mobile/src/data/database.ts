@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import { DEFAULT_PREFERENCES } from "@/domain/meditation";
 
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 export async function initializeDatabase(db: SQLiteDatabase) {
   await db.execAsync("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
@@ -30,6 +30,8 @@ export async function initializeDatabase(db: SQLiteDatabase) {
           resumed_at_ms INTEGER,
           status TEXT NOT NULL CHECK (status IN ('running', 'paused')),
           completion_sound TEXT NOT NULL CHECK (completion_sound IN ('soft-chime', 'low-bowl', 'wood-tone')),
+          completion_local_date TEXT NOT NULL,
+          completion_timezone_offset_minutes INTEGER NOT NULL,
           CHECK (
             (status = 'running' AND resumed_at_ms IS NOT NULL) OR
             (status = 'paused' AND resumed_at_ms IS NULL)
@@ -57,7 +59,18 @@ export async function initializeDatabase(db: SQLiteDatabase) {
         "INSERT OR IGNORE INTO preferences (singleton_id, value) VALUES (1, ?)",
         JSON.stringify(DEFAULT_PREFERENCES),
       );
-      await transaction.execAsync("PRAGMA user_version = 1");
+      await transaction.execAsync("PRAGMA user_version = 2");
+    });
+    return;
+  }
+
+  if (currentVersion < 2) {
+    await db.withExclusiveTransactionAsync(async (transaction) => {
+      await transaction.execAsync(`
+        ALTER TABLE active_session ADD COLUMN completion_local_date TEXT;
+        ALTER TABLE active_session ADD COLUMN completion_timezone_offset_minutes INTEGER;
+        PRAGMA user_version = 2;
+      `);
     });
   }
 }

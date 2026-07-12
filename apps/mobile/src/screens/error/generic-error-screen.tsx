@@ -47,7 +47,7 @@ export function GenericErrorScreen({
       </View>
 
       {errorDetails && (
-        <Card variant="tertiary" className="w-full max-w-[320px]">
+        <Card variant="tertiary" className="w-full max-w-[320px] p-0">
           <Card.Body className="gap-2 p-3">
             <View className="flex-row items-center gap-1.5">
               <SymbolView

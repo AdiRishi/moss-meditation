@@ -105,10 +105,36 @@ describe("<PracticeHistoryScreen />", () => {
 
     const sessionRows = getAllByLabelText(/ session, /).map((row) => row.props.accessibilityLabel);
     expect(sessionRows).toEqual([
-      "Morning session, Today, 7:00 AM, 15 minutes",
-      "Evening session, Yesterday, 7:00 PM, 10 minutes",
-      "Morning session, Jul 1, 7:00 AM, 5 minutes",
+      "Morning session, Today, 7:15 AM, 15 minutes",
+      "Evening session, Yesterday, 7:10 PM, 10 minutes",
+      "Morning session, Jul 1, 7:05 AM, 5 minutes",
     ]);
+  });
+
+  test("labels a session that crosses midnight with its completion date and time", async () => {
+    const startedAtMs = new Date(2026, 6, 14, 23, 55).getTime();
+    const completedAtMs = new Date(2026, 6, 15, 0, 10).getTime();
+    const overnightSession: CompletedSession = {
+      id: "overnight",
+      startedAtMs,
+      completedAtMs,
+      localDate: "2026-07-15",
+      timezoneOffsetMinutes: new Date(completedAtMs).getTimezoneOffset(),
+      durationMs: 15 * 60_000,
+      completionSound: "soft-chime",
+      feeling: null,
+      acknowledgedAtMs: completedAtMs,
+    };
+    const store = new InMemoryMeditationStore({ completedSessions: [overnightSession] });
+    const { getByLabelText } = render(
+      <TestProviders store={store}>
+        <PracticeHistoryScreen />
+      </TestProviders>,
+    );
+
+    await waitFor(() => {
+      expect(getByLabelText("Morning session, Today, 12:10 AM, 15 minutes")).toBeOnTheScreen();
+    });
   });
 
   test("moves one month at a time and keeps an empty month invitational", async () => {

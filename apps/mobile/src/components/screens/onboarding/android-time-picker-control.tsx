@@ -28,16 +28,15 @@ export function AndroidTimePickerControl({ practiceTime, onChange }: AndroidTime
           mode="time"
           display="default"
           minuteInterval={5}
-          onChange={(event, date) => {
+          onDismiss={() => setIsOpen(false)}
+          onValueChange={(_, date) => {
             setIsOpen(false);
-            if (event.type === "set" && date) {
-              onChange({
-                ...practiceTime,
-                hour: date.getHours(),
-                minute: date.getMinutes(),
-                enabled: true,
-              });
-            }
+            onChange({
+              ...practiceTime,
+              hour: date.getHours(),
+              minute: date.getMinutes(),
+              enabled: true,
+            });
           }}
         />
       ) : (

@@ -8,7 +8,7 @@ import { getZenNotificationKind } from "@/services/local-notifications";
 export function NotificationResponseNavigator() {
   const router = useRouter();
   const response = Notifications.useLastNotificationResponse();
-  const { activeSession, isReady, pendingCompletion, preferences, refresh } = useMeditation();
+  const { activeSession, error, isReady, pendingCompletion, preferences, refresh } = useMeditation();
   const handledIdentifier = useRef<string | null>(null);
 
   useEffect(() => {
@@ -18,6 +18,15 @@ export function NotificationResponseNavigator() {
     }
 
     if (!isReady) {
+      return;
+    }
+
+    if (error) {
+      try {
+        Notifications.clearLastNotificationResponse();
+      } catch {
+        handledIdentifier.current = null;
+      }
       return;
     }
 
@@ -35,7 +44,11 @@ export function NotificationResponseNavigator() {
     }
 
     if (kind === "session-completion") {
-      void refresh().finally(() => router.replace("/meditation"));
+      void refresh().then((didRefresh) => {
+        if (didRefresh) {
+          router.replace("/meditation");
+        }
+      });
       return;
     }
 
@@ -48,7 +61,7 @@ export function NotificationResponseNavigator() {
     } else {
       router.replace("/");
     }
-  }, [activeSession, isReady, pendingCompletion, preferences.onboardingCompleted, refresh, response, router]);
+  }, [activeSession, error, isReady, pendingCompletion, preferences.onboardingCompleted, refresh, response, router]);
 
   return null;
 }

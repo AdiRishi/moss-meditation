@@ -12,6 +12,8 @@ function buildActiveSession() {
     resumedAtMs: STARTED_AT,
     status: "running",
     completionSound: "soft-chime",
+    completionLocalDate: "2026-07-13",
+    completionTimezoneOffsetMinutes: new Date(STARTED_AT + 10 * 60_000).getTimezoneOffset(),
   });
 }
 
@@ -58,5 +60,18 @@ describe("session timer", () => {
     const completed = completeSession(session, STARTED_AT - 60_000);
 
     expect(completed.completedAtMs).toBe(STARTED_AT);
+  });
+
+  it("preserves the planned completion date when an overdue session is recovered elsewhere", () => {
+    const session = {
+      ...buildActiveSession(),
+      completionLocalDate: "2026-07-14",
+      completionTimezoneOffsetMinutes: -600,
+    };
+
+    const completed = completeSession(session, STARTED_AT + 11 * 60_000);
+
+    expect(completed.localDate).toBe("2026-07-14");
+    expect(completed.timezoneOffsetMinutes).toBe(-600);
   });
 });

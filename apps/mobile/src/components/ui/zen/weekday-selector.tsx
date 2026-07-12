@@ -26,7 +26,7 @@ type WeekdaySelectorProps = {
 export function WeekdaySelector({ selected, onChange, completed = new Set(), compact = false }: WeekdaySelectorProps) {
   const colors = useThemeColors();
   const selectedSet = new Set<Weekday>(selected);
-  const sizeClass = compact ? "size-9" : "size-10";
+  const sizeClass = compact ? "aspect-square max-h-9 max-w-9 flex-1" : "aspect-square max-h-10 max-w-10 flex-1";
 
   const toggle = (day: Weekday) => {
     if (!onChange) {
@@ -39,7 +39,7 @@ export function WeekdaySelector({ selected, onChange, completed = new Set(), com
   };
 
   return (
-    <View className="flex-row justify-between gap-1">
+    <View className="flex-row justify-between gap-0.5">
       {WEEKDAYS.map(({ day, label, accessibilityLabel }) => {
         const isSelected = selectedSet.has(day);
         const isCompleted = completed.has(day);
