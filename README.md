@@ -1,141 +1,117 @@
-# Zen Meditation
+<div align="center">
 
-Cross-platform meditation app built with Expo and React Native.
+<img src="./docs/design/assets/zen-app-icon.png" width="112" alt="Zen app icon" />
 
-[![Expo SDK](https://img.shields.io/badge/Expo_SDK-57-blue?logo=expo)](https://expo.dev)
-[![Platforms](https://img.shields.io/badge/Platforms-iOS_%7C_Android_%7C_Web-lightgrey?logo=react)](https://reactnative.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Uses pnpm](https://img.shields.io/badge/pnpm-11.x-orange?logo=pnpm)](https://pnpm.io/)
+# Zen
 
-## What's included
+**A quiet rhythm for daily practice.**
 
-- **Tailwind CSS v4** via [Uniwind](https://uniwind.dev/) — utility-first styling that works on native and web
-- **[HeroUI Native](https://v3.heroui.com/docs/native/getting-started)** — polished component library with buttons, inputs, accordions, and more
-- **Dark mode** — full light/dark theming via CSS variables, one file to customize
-- **Expo Router** — file-based routing with typed routes and native tab navigation
-- **[TanStack Form](https://tanstack.com/form)** — composable, type-safe forms via `createFormHook` with Zod validation
-- **[Nitro](https://nitro.build/) + [tRPC](https://trpc.io/)** — type-safe API server in a monorepo, deployable to Cloudflare Workers
-- **React 19 + React Compiler** — latest React with automatic optimizations
-- **Strict TypeScript, Expo ESLint, Oxlint, Oxfmt, Turborepo** — opinionated DX with import and Tailwind class sorting
-- **Jest + React Native Testing Library + Vitest** — frontend and server unit tests with app providers and tRPC test helpers
-- **Agent skills** — context-aware guidance for HeroUI Native, React correctness, and reusable composition patterns
-- **Codex harness instructions** — local iOS simulator validation through the Browser Use plugin
+Zen is a meditation companion that supports the practice without becoming the focus of it.
 
-## Prerequisites
+</div>
 
-- Node.js version pinned in `.node-version`
-- pnpm pinned by `packageManager` in `package.json`
-- Xcode (for iOS simulator) and/or Android Studio (for Android emulator)
+![Zen daily practice experience](./docs/design/screens/02-daily-practice.png)
+
+## Presence without pressure
+
+Meditation asks for quiet. Most phone timers end it with an alarm.
+
+Zen is designed around a gentler experience: choose how long you want to sit, begin with minimal ceremony, and return with a soft sound when the session is complete. Outside the session, flexible goals, subtle reminders, and thoughtful progress help a practice become regular without turning it into another obligation.
+
+Zen is not a guided-meditation service or a content library. It is the calm structure around a person's own practice.
+
+- **Sit without interruption.** Once a session begins, Zen asks for nothing.
+- **Return gently.** Soft sound, restrained motion, and calm language replace the abrupt alarm.
+- **Build a rhythm.** Flexible schedules and reminders make it easier to come back.
+- **See progress without pressure.** Progress is encouraging and tangible, never punitive.
+
+## Designed to recede
+
+Zen's interface is warm, spacious, and purposefully quiet. The open ensō represents a practice that is alive rather than perfected: complete enough to hold the moment, open enough to begin again.
+
+The visual system pairs an ink-and-mist foundation with a restrained moss accent, editorial Newsreader display type, clear Geist interface type, and motion that feels more like breath than spectacle.
+
+The complete foundation lives in the repository:
+
+- [Vision](./docs/VISION.md) — why Zen should exist and how it should feel.
+- [Product](./docs/PRODUCT.md) — the core experience, boundaries, and open decisions.
+- [Design system](./docs/design/README.md) — brand, screens, assets, and implementation tokens.
+- [Brand specification](./docs/design/BRAND.md) — identity, colour, typography, layout, motion, sound, and voice.
+
+## Project status
+
+> [!NOTE]
+> Zen is in active development. The product vision, brand system, core flows, and app theme are established; feature implementation is ongoing. The interfaces in this README show the high-fidelity product direction, not a released App Store build.
+
+## Engineering
+
+Zen is a TypeScript monorepo built for iOS, Android, and the web. The mobile app uses Expo and React Native; a Nitro server exposes a type-safe tRPC API that can be deployed to Cloudflare Workers.
+
+| Layer     | Technology                                             |
+| --------- | ------------------------------------------------------ |
+| App       | Expo 57, React Native 0.86, React 19, Expo Router      |
+| Interface | HeroUI Native, Uniwind, Tailwind CSS v4, Reanimated    |
+| Data      | tRPC v11, TanStack Query, TanStack Form, Zod           |
+| Server    | Nitro 3, Cloudflare Workers                            |
+| Quality   | Strict TypeScript, Jest, Vitest, ESLint, Oxlint, Oxfmt |
+| Workspace | pnpm, Turborepo                                        |
 
 ## Quick start
 
-**1. Install dependencies:**
+You will need the Node.js version in [`.node-version`](./.node-version), pnpm 11, and Xcode or Android Studio for native development.
 
 ```bash
+git clone https://github.com/AdiRishi/zen-meditation.git
+cd zen-meditation
 pnpm install
 ```
 
-**2. Start the API server:**
+Start the API server:
 
 ```bash
-pnpm run server:dev   # Nitro dev server on localhost:3000
+pnpm run server:dev
 ```
 
-**3. Build and run** (in a separate terminal):
+Then generate the native projects when needed and start the app in a second terminal:
 
 ```bash
-pnpm run prebuild     # Regenerate native projects when needed
-pnpm ios              # Compile packages, then run the iOS simulator
-pnpm android          # Compile packages, then run the Android emulator
-pnpm web              # Compile packages, then start Expo web
+pnpm run prebuild
+pnpm ios
+
+# Or:
+pnpm android
+pnpm web
 ```
 
-Root scripts are the public interface for everyday work. They compile internal packages first, then delegate to the app or server workspace.
+## Everyday commands
 
-## Development scripts
+| Command             | Purpose                                        |
+| ------------------- | ---------------------------------------------- |
+| `pnpm run check`    | Run lint, formatting checks, and TypeScript    |
+| `pnpm run test`     | Run app and server tests                       |
+| `pnpm run compile`  | Compile shared workspace packages              |
+| `pnpm run format`   | Format the repository with Oxfmt               |
+| `pnpm run prebuild` | Regenerate the native iOS and Android projects |
 
-```bash
-pnpm run compile        # Compile shared internal packages
-pnpm run lint           # App + server/shared package lint
-pnpm run lint:app       # Expo ESLint for the mobile app
-pnpm run lint:server    # Oxlint for the API and shared packages
-pnpm run typecheck      # TypeScript across all workspaces
-pnpm run format         # Oxfmt write
-pnpm run format:check   # Oxfmt check
-pnpm run check          # Lint + format check + typecheck
+## Repository guide
+
+```text
+apps/mobile/     Expo app, routes, screens, and interface components
+servers/api/     Nitro server and tRPC procedures
+packages/        Shared contracts and TypeScript configuration
+docs/            Product vision, design system, and architecture decisions
 ```
 
-Native projects and task outputs are generated and ignored. `apps/mobile/ios/`, `apps/mobile/android/`, `.expo/`, `.turbo/`, `coverage/`, and package `dist/` folders can be deleted and regenerated from scripts.
+Architecture and workflow decisions are recorded in [`docs/adr`](./docs/adr/README.md). The local simulator validation workflow is documented in [`docs/agents/local-validation.md`](./docs/agents/local-validation.md).
 
-## Testing
+## License
 
-Frontend unit tests run with Jest and React Native Testing Library. Server unit tests run with Vitest.
+Zen is available under the [MIT License](./LICENSE).
 
-```bash
-pnpm run test           # app + server tests
-pnpm run test:app       # app tests only
-pnpm run test:server    # server tests only
-```
+---
 
-App tests live in `apps/mobile/tests/` and mirror `apps/mobile/src/` paths, with shared helpers in `apps/mobile/tests/testing-utils/`. Use small scenario-explicit builders for repeated data shapes, and keep feature-specific mocks in the test or harness that needs them. Server tests live under `servers/api/tests/` and mirror backend paths.
+<div align="center">
 
-## Tech stack
+Made with ❤️
 
-| Layer      | Technology                                   |
-| ---------- | -------------------------------------------- |
-| Framework  | Expo 57 + React Native 0.86                  |
-| Routing    | Expo Router (file-based, typed routes)       |
-| Styling    | Tailwind CSS v4 via Uniwind                  |
-| Components | HeroUI Native                                |
-| Animations | React Native Reanimated 4                    |
-| Server     | Nitro 3 (Cloudflare Workers)                 |
-| Forms      | TanStack Form + Zod                          |
-| API        | tRPC v11 + TanStack Query                    |
-| Testing    | Jest + React Native Testing Library + Vitest |
-| Tooling    | Turborepo + Expo ESLint + Oxlint + Oxfmt     |
-| Language   | TypeScript 6.0 (strict)                      |
-
-## Project structure
-
-```
-apps/
-  mobile/
-    app.json                  → Expo app config and native plugin settings
-    src/
-      app/                      → Routes (thin files that render screens)
-      screens/                  → Screen components with page logic
-      components/
-        ui/                     → Design system primitives (buttons, typography, containers)
-        form/                   → TanStack Form field and form components
-        screens/<screen-name>/  → Components specific to a single screen
-      hooks/                    → Custom hooks (theme colors, form context, etc.)
-      schemas/                  → Zod validation schemas
-      lib/                      → tRPC client, environment config
-      global.css                → Theme tokens — edit this to customize your app
-    tests/                    → Jest tests mirroring src/
-servers/
-  api/
-    routes/                   → Nitro API routes
-    trpc/                     → tRPC router and procedure definitions
-    tests/                    → Vitest tests mirroring server paths
-packages/
-  rpc/                      → Shared tRPC transport configuration
-  typescript-config/        → Shared TypeScript defaults for packages
-```
-
-## Agent validation
-
-This repository includes a Codex harness for validating native changes end-to-end. Agents can launch the app, drive the iOS simulator through the Browser Use plugin, verify the result, run checks, and clean up.
-
-https://github.com/user-attachments/assets/0b875e4d-f8d2-4b47-bb69-2270725f9c9e
-
-## Resources
-
-- [Expo docs](https://docs.expo.dev/)
-- [Uniwind](https://uniwind.dev/)
-- [HeroUI Native](https://v3.heroui.com/docs/native/getting-started)
-- [Tailwind CSS v4](https://tailwindcss.com/)
-- [Nitro](https://nitro.build/)
-- [tRPC](https://trpc.io/)
-- [TanStack Query](https://tanstack.com/query)
-- [TanStack Form](https://tanstack.com/form)
+</div>
