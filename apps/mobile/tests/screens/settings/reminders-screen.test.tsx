@@ -69,6 +69,22 @@ describe("<RemindersScreen />", () => {
     await expect(store.loadPreferences()).resolves.toMatchObject({ remindersEnabled: false });
   });
 
+  it("does not treat a permission read failure as a denial", async () => {
+    const notifications = createNotifications("granted");
+    notifications.getPermissionStatus.mockRejectedValue(new Error("Permissions unavailable"));
+    const preferences = { ...DEFAULT_PREFERENCES, remindersEnabled: true };
+    const { findByText, getByText, store } = renderMeditationScreen(<RemindersScreen />, {
+      notifications,
+      store: new InMemoryMeditationStore({ preferences }),
+    });
+
+    await findByText("Reminder timing");
+    fireEvent.press(getByText("Save"));
+
+    await waitFor(() => expect(notifications.requestPermission).toHaveBeenCalledTimes(1));
+    await expect(store.loadPreferences()).resolves.toMatchObject({ remindersEnabled: true });
+  });
+
   it("keeps saved choices when device scheduling needs to be retried", async () => {
     const notifications = createNotifications("granted");
     const { findByText, getByLabelText, getByText, store } = renderMeditationScreen(<RemindersScreen />, {

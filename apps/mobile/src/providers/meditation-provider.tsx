@@ -115,20 +115,20 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
 
         const completedSessions = await store.listCompletedSessions();
         const notificationPermission = notifications
-          ? await notifications.getPermissionStatus().catch(() => "denied" as const)
-          : "undetermined";
+          ? await notifications.getPermissionStatus().catch(() => null)
+          : null;
         if (refreshRevision !== stateRevision.current) {
           continue;
         }
-        setState({
+        setState((current) => ({
           isReady: true,
           error: null,
           preferences,
           activeSession,
           completedSessions,
           pendingCompletion: pendingCompletion(completedSessions),
-          notificationPermission,
-        });
+          notificationPermission: notificationPermission ?? current.notificationPermission,
+        }));
         if (notifications) {
           void notifications.rescheduleWeeklyReminders(preferences).catch(() => undefined);
         }
