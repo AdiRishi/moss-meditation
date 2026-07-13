@@ -18,7 +18,7 @@ Pixel-hunting is fragile across device sizes. Prefer driving taps from the acces
 
 ```sh
 # 1. Ensure serve-sim is running and discover the stream port
-URL=$(pnpm --filter @repo/mobile exec serve-sim --list -q | jq -r '.[0].streamUrl')
+URL=$(pnpm --filter @repo/mobile exec serve-sim --list -q | jq -r 'if .running then (.streamUrl // .streams[0].streamUrl // empty) else empty end')
 PORT=$(echo "$URL" | sed -E 's|.*://[^:]+:([0-9]+).*|\1|')
 
 # 2. Fetch the accessibility tree
@@ -61,7 +61,7 @@ xcrun simctl openurl booted "myapp://products/42"
 sleep 1
 
 # 3. Resolve the stream endpoint — do not hardcode :3100, it may differ
-PORT=$(pnpm --filter @repo/mobile exec serve-sim --list -q | jq -r '.[0].streamUrl' | sed -E 's|.*://[^:]+:([0-9]+).*|\1|')
+PORT=$(pnpm --filter @repo/mobile exec serve-sim --list -q | jq -r 'if .running then (.streamUrl // .streams[0].streamUrl // empty) else empty end' | sed -E 's|.*://[^:]+:([0-9]+).*|\1|')
 
 # 4. Verify the frontmost app is yours
 curl -s "http://localhost:${PORT}/foreground" | jq
@@ -107,7 +107,7 @@ pnpm --filter @repo/mobile exec serve-sim ca-debug blended on
 xcrun simctl openurl booted "myapp://settings"
 
 # 3. Resolve the stream endpoint — do not hardcode :3100, it may differ
-PORT=$(pnpm --filter @repo/mobile exec serve-sim --list -q | jq -r '.[0].streamUrl' | sed -E 's|.*://[^:]+:([0-9]+).*|\1|')
+PORT=$(pnpm --filter @repo/mobile exec serve-sim --list -q | jq -r 'if .running then (.streamUrl // .streams[0].streamUrl // empty) else empty end' | sed -E 's|.*://[^:]+:([0-9]+).*|\1|')
 
 # 4. Grab a screenshot from the MJPEG stream
 curl -s "http://localhost:${PORT}/stream.mjpeg?raw=1" \

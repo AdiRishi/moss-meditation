@@ -9,7 +9,20 @@ set -u
 DEVICE="${1:-}"
 
 # If a helper is already running for any device, return it
-EXISTING="$(pnpm --filter @repo/mobile exec serve-sim --list -q 2>/dev/null || echo '[]')"
+EXISTING="$(pnpm --filter @repo/mobile exec serve-sim --list -q 2>/dev/null | node -e "
+  const input = require('fs').readFileSync(0, 'utf8');
+  try {
+    const state = JSON.parse(input);
+    const streams = Array.isArray(state)
+      ? state
+      : state.running
+        ? Array.isArray(state.streams) ? state.streams : [state]
+        : [];
+    process.stdout.write(JSON.stringify(streams));
+  } catch {
+    process.stdout.write('[]');
+  }
+")"
 if [[ "$EXISTING" != "[]" && -n "$EXISTING" ]]; then
   if [[ -n "$DEVICE" ]]; then
     MATCH="$(echo "$EXISTING" | node -e "

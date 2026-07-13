@@ -108,12 +108,14 @@ If the user has only one booted simulator, omit `-d` entirely. The skill should 
 By default, serve-sim prints human-readable status to stdout. For agent loops, prefer JSON output:
 
 ```sh
-pnpm --filter @repo/mobile exec serve-sim --list -q          # JSON array of running streams
+pnpm --filter @repo/mobile exec serve-sim --list -q          # JSON running-state object
 pnpm --filter @repo/mobile exec serve-sim --detach -q        # JSON with pid/port/url after spawn
 pnpm --filter @repo/mobile exec serve-sim camera status -q   # JSON with {alive, source, mirror, ...}
 ```
 
 Parse `-q` output programmatically. Never parse the non-`-q` human output — it can change between versions.
+For `--list -q`, expect `{running:false}` with no stream, a single stream object with `running:true`, or
+`{running:true,streams:[...]}` when multiple streams exist.
 
 ## Showing the stream in your agent's preview
 
