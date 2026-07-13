@@ -1,4 +1,5 @@
-import { fireEvent, waitFor } from "@testing-library/react-native";
+import { fireEvent, waitFor, within } from "@testing-library/react-native";
+import { expectedWallClockTime } from "@tests/testing-utils/date-time";
 import { InMemoryMeditationStore } from "@tests/testing-utils/in-memory-meditation-store";
 import { renderMeditationScreen } from "@tests/testing-utils/render-meditation-screen";
 
@@ -7,6 +8,8 @@ import { PracticeHistoryScreen } from "@/screens/practice-history-screen";
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
+const MONTH_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
+const SESSION_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 jest.mock("expo-router", () => ({
   useFocusEffect: jest.fn(),
@@ -63,34 +66,27 @@ describe("<PracticeHistoryScreen />", () => {
         createCompletedSession({ id: "today", day: 15, durationMinutes: 15 }),
       ],
     });
-    const { getAllByLabelText, getByLabelText, getByText } = renderMeditationScreen(<PracticeHistoryScreen />, {
-      store,
-    });
+    const { getAllByLabelText, getByText } = renderMeditationScreen(<PracticeHistoryScreen />, { store });
 
-    await waitFor(() => {
-      expect(getByText("July 2026")).toBeOnTheScreen();
-    });
-    expect(getByLabelText(/Wednesday, July 1, 2026, practice completed/)).toBeOnTheScreen();
-    expect(getByLabelText(/Thursday, July 2, 2026, no practice recorded/)).toBeOnTheScreen();
-    expect(
-      getAllByLabelText(/practice completed|no practice recorded/)
-        .slice(0, 7)
-        .map((day) => day.props.accessibilityLabel),
-    ).toEqual([
-      "Monday, June 29, 2026, no practice recorded",
-      "Tuesday, June 30, 2026, no practice recorded",
-      "Wednesday, July 1, 2026, practice completed",
-      "Thursday, July 2, 2026, no practice recorded",
-      "Friday, July 3, 2026, no practice recorded",
-      "Saturday, July 4, 2026, no practice recorded",
-      "Sunday, July 5, 2026, no practice recorded",
+    await waitFor(() => getByText("Recent sessions"));
+
+    const firstWeek = getAllByLabelText(/practice completed|no practice recorded/).slice(0, 7);
+    expect(firstWeek.map((day) => day.props.accessibilityLabel.endsWith(", practice completed"))).toEqual([
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
     ]);
+    expect(within(firstWeek[2]).getByText("1")).toBeOnTheScreen();
 
     const sessionRows = getAllByLabelText(/ session, /).map((row) => row.props.accessibilityLabel);
     expect(sessionRows).toEqual([
-      "Morning session, Today, 7:15 AM, 15 minutes",
-      "Evening session, Yesterday, 7:10 PM, 10 minutes",
-      "Morning session, Jul 1, 7:05 AM, 5 minutes",
+      `Morning session, Today, ${expectedWallClockTime(7, 15)}, 15 minutes`,
+      `Evening session, Yesterday, ${expectedWallClockTime(19, 10)}, 10 minutes`,
+      `Morning session, ${SESSION_DATE_FORMATTER.format(new Date(2026, 6, 1))}, ${expectedWallClockTime(7, 5)}, 5 minutes`,
     ]);
   });
 
@@ -112,7 +108,7 @@ describe("<PracticeHistoryScreen />", () => {
     const { getByLabelText } = renderMeditationScreen(<PracticeHistoryScreen />, { store });
 
     await waitFor(() => {
-      expect(getByLabelText("Morning session, Today, 12:10 AM, 15 minutes")).toBeOnTheScreen();
+      expect(getByLabelText(`Morning session, Today, ${expectedWallClockTime(0, 10)}, 15 minutes`)).toBeOnTheScreen();
     });
   });
 
@@ -122,12 +118,10 @@ describe("<PracticeHistoryScreen />", () => {
     });
     const { getByRole, getByText } = renderMeditationScreen(<PracticeHistoryScreen />, { store });
 
-    await waitFor(() => {
-      expect(getByText("July 2026")).toBeOnTheScreen();
-    });
+    await waitFor(() => getByText(MONTH_FORMATTER.format(new Date(2026, 6, 1))));
     fireEvent.press(getByRole("button", { name: "Show next month" }));
 
-    expect(getByText("August 2026")).toBeOnTheScreen();
+    expect(getByText(MONTH_FORMATTER.format(new Date(2026, 7, 1)))).toBeOnTheScreen();
     expect(getByText("No sessions this month")).toBeOnTheScreen();
 
     fireEvent.press(getByRole("button", { name: "Begin" }));

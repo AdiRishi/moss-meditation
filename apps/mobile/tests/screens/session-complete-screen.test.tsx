@@ -1,4 +1,5 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
+import { expectedWallClockTime } from "@tests/testing-utils/date-time";
 import { InMemoryMeditationStore } from "@tests/testing-utils/in-memory-meditation-store";
 import { renderMeditationScreen } from "@tests/testing-utils/render-meditation-screen";
 
@@ -38,9 +39,11 @@ function completedSession(): CompletedSession {
 }
 
 function travelledSession(): CompletedSession {
+  const completedAtMs = Date.UTC(2026, 6, 13, 0, 10);
   return {
     ...completedSession(),
-    completedAtMs: Date.UTC(2026, 6, 13, 0, 10),
+    startedAtMs: completedAtMs - 10 * 60_000,
+    completedAtMs,
     timezoneOffsetMinutes: -600,
   };
 }
@@ -94,7 +97,9 @@ describe("SessionCompleteScreen", () => {
   it("shows the completion time in the timezone where the session ended", async () => {
     const store = new InMemoryMeditationStore({ completedSessions: [travelledSession()] });
     const { getByText } = renderMeditationScreen(<SessionCompleteScreen />, { store });
+    const completionTime = expectedWallClockTime(10, 10);
+    const completionTimePattern = new RegExp(completionTime.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
-    await waitFor(() => getByText(/10:10 AM/));
+    await waitFor(() => getByText(completionTimePattern));
   });
 });

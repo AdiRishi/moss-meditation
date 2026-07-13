@@ -47,10 +47,13 @@ describe("progress summary", () => {
   });
 
   it("uses the completion-zone date when the device has since changed time zones", () => {
+    const completedAtMs = Date.UTC(2026, 6, 5, 20, 30);
     const session = {
       ...buildSession(6, 10),
-      completedAtMs: new Date(2026, 6, 5, 20, 30).getTime(),
+      startedAtMs: completedAtMs - 10 * 60_000,
+      completedAtMs,
       localDate: "2026-07-06",
+      timezoneOffsetMinutes: -600,
     };
 
     const summary = buildProgressSummary([session], [1, 2, 3, 4, 5], new Date(2026, 6, 10).getTime(), "week");
