@@ -1,4 +1,4 @@
-import { fireEvent, waitFor, within } from "@testing-library/react-native";
+import { act, fireEvent, waitFor, within } from "@testing-library/react-native";
 import { expectedWallClockTime } from "@tests/testing-utils/date-time";
 import { InMemoryMeditationStore } from "@tests/testing-utils/in-memory-meditation-store";
 import { renderMeditationScreen } from "@tests/testing-utils/render-meditation-screen";
@@ -8,11 +8,12 @@ import { PracticeHistoryScreen } from "@/screens/practice-history-screen";
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
+const mockUseFocusEffect = jest.fn();
 const MONTH_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
 const SESSION_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 jest.mock("expo-router", () => ({
-  useFocusEffect: jest.fn(),
+  useFocusEffect: (effect: () => void) => mockUseFocusEffect(effect),
   useRouter: () => ({ back: mockBack, push: mockPush }),
 }));
 
@@ -52,6 +53,7 @@ describe("<PracticeHistoryScreen />", () => {
     jest.setSystemTime(new Date(2026, 6, 15, 12, 0));
     mockBack.mockClear();
     mockPush.mockClear();
+    mockUseFocusEffect.mockClear();
   });
 
   afterEach(() => {
@@ -112,6 +114,19 @@ describe("<PracticeHistoryScreen />", () => {
     });
   });
 
+  test("labels midday sessions as afternoon", async () => {
+    const store = new InMemoryMeditationStore({
+      completedSessions: [createCompletedSession({ id: "afternoon", day: 15, hour: 12, durationMinutes: 30 })],
+    });
+    const { getByLabelText } = renderMeditationScreen(<PracticeHistoryScreen />, { store });
+
+    await waitFor(() => {
+      expect(
+        getByLabelText(`Afternoon session, Today, ${expectedWallClockTime(12, 30)}, 30 minutes`),
+      ).toBeOnTheScreen();
+    });
+  });
+
   test("moves one month at a time and keeps an empty month invitational", async () => {
     const store = new InMemoryMeditationStore({
       completedSessions: [createCompletedSession({ id: "july", day: 15, durationMinutes: 15 })],
@@ -126,5 +141,28 @@ describe("<PracticeHistoryScreen />", () => {
 
     fireEvent.press(getByRole("button", { name: "Begin" }));
     expect(mockPush).toHaveBeenCalledWith("/session-setup");
+  });
+
+  test("follows the current month across a rollover while preserving manual browsing", async () => {
+    jest.setSystemTime(new Date(2026, 6, 31, 23, 59));
+    const store = new InMemoryMeditationStore({
+      completedSessions: [createCompletedSession({ id: "august", day: 1, monthIndex: 7, durationMinutes: 10 })],
+    });
+    const { getByRole, getByText } = renderMeditationScreen(<PracticeHistoryScreen />, { store });
+
+    await waitFor(() => getByText(MONTH_FORMATTER.format(new Date(2026, 6, 1))));
+    jest.setSystemTime(new Date(2026, 7, 1, 0, 1));
+    act(() => mockUseFocusEffect.mock.calls.at(-1)?.[0]());
+
+    await waitFor(() => getByText(MONTH_FORMATTER.format(new Date(2026, 7, 1))));
+    expect(getByText("10 min")).toBeOnTheScreen();
+
+    fireEvent.press(getByRole("button", { name: "Show previous month" }));
+    fireEvent.press(getByRole("button", { name: "Show previous month" }));
+    expect(getByText(MONTH_FORMATTER.format(new Date(2026, 5, 1)))).toBeOnTheScreen();
+
+    jest.setSystemTime(new Date(2026, 7, 2, 12, 0));
+    act(() => mockUseFocusEffect.mock.calls.at(-1)?.[0]());
+    expect(getByText(MONTH_FORMATTER.format(new Date(2026, 5, 1)))).toBeOnTheScreen();
   });
 });

@@ -4,36 +4,19 @@ import { View } from "react-native";
 import { Typography } from "@/components/ui/typography";
 import { ZenCard } from "@/components/ui/zen/zen-card";
 import { ZenIcon } from "@/components/ui/zen/zen-icon";
-import {
-  addLocalDays,
-  formatWallClockTime,
-  fromLocalDateKey,
-  toLocalDateKey,
-  toWallClockTimeMs,
-} from "@/domain/date-time";
+import { formatLocalDateLabel, formatSessionDaypart, formatWallClockTime } from "@/domain/date-time";
 import type { CompletedSession } from "@/domain/meditation";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 
-const SESSION_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
-function sessionWallClockMs(session: CompletedSession) {
-  return toWallClockTimeMs(session.completedAtMs, session.timezoneOffsetMinutes);
-}
-
 function sessionLabel(session: CompletedSession) {
-  return new Date(sessionWallClockMs(session)).getUTCHours() < 12 ? "Morning" : "Evening";
+  return formatSessionDaypart(session.completedAtMs, session.timezoneOffsetMinutes);
 }
 
 function sessionDateTime(session: CompletedSession, nowMs: number) {
-  const todayKey = toLocalDateKey(nowMs);
-  const yesterdayKey = toLocalDateKey(addLocalDays(nowMs, -1));
-  const dateLabel =
-    session.localDate === todayKey
-      ? "Today"
-      : session.localDate === yesterdayKey
-        ? "Yesterday"
-        : SESSION_DATE_FORMATTER.format(fromLocalDateKey(session.localDate));
-
-  return `${dateLabel}, ${formatWallClockTime(session.completedAtMs, session.timezoneOffsetMinutes)}`;
+  return `${formatLocalDateLabel(session.localDate, nowMs)}, ${formatWallClockTime(
+    session.completedAtMs,
+    session.timezoneOffsetMinutes,
+  )}`;
 }
 
 function SessionRow({ session, nowMs }: { session: CompletedSession; nowMs: number }) {
@@ -51,7 +34,7 @@ function SessionRow({ session, nowMs }: { session: CompletedSession; nowMs: numb
       className="min-h-18 flex-row items-center gap-3 px-4 py-3"
     >
       <View className="size-11 items-center justify-center rounded-full bg-surface-secondary">
-        <ZenIcon name={label === "Morning" ? "sun" : "moon"} size={22} tintColor={colors.muted} />
+        <ZenIcon name={label === "Evening" ? "moon" : "sun"} size={22} tintColor={colors.muted} />
       </View>
       <View className="min-w-0 flex-1 gap-0.5">
         <Typography variant="body">{label}</Typography>

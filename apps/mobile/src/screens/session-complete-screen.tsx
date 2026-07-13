@@ -7,7 +7,7 @@ import { Typography } from "@/components/ui/typography";
 import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
 import { ZenCard } from "@/components/ui/zen/zen-card";
 import { ZenIcon } from "@/components/ui/zen/zen-icon";
-import { formatWallClockTime, toLocalDateKey } from "@/domain/date-time";
+import { formatLocalDateLabel, formatWallClockTime } from "@/domain/date-time";
 import { type Feeling } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useCompletionSounds } from "@/hooks/use-completion-sounds";
@@ -57,7 +57,7 @@ export function SessionCompleteScreen() {
   }
 
   const durationMinutes = Math.round(session.durationMs / 60_000);
-  const dateLabel = session.localDate === toLocalDateKey(nowMs) ? "Today" : session.localDate;
+  const dateLabel = formatLocalDateLabel(session.localDate, nowMs);
 
   const done = async () => {
     const completed = await action.run(async () => {

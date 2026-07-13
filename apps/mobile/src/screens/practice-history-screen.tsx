@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
 
 import { PracticeCalendar } from "@/components/screens/progress/practice-calendar";
@@ -23,9 +23,15 @@ export function PracticeHistoryScreen() {
   const { completedSessions, error, isReady, refresh } = useMeditation();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [monthStartMs, setMonthStartMs] = useState(() => startOfLocalMonth(nowMs));
+  const previousNowMs = useRef(nowMs);
   useFocusEffect(
     useCallback(() => {
-      setNowMs(Date.now());
+      const nextNowMs = Date.now();
+      setMonthStartMs((current) =>
+        current === startOfLocalMonth(previousNowMs.current) ? startOfLocalMonth(nextNowMs) : current,
+      );
+      previousNowMs.current = nextNowMs;
+      setNowMs(nextNowMs);
     }, []),
   );
   const monthKey = toLocalDateKey(monthStartMs).slice(0, 7);

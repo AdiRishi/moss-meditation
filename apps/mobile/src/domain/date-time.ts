@@ -17,6 +17,17 @@ const weekdayFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
 });
 
+const shortDateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+});
+
+const shortDateWithYearFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
 export function toLocalDateKey(timeMs: number) {
   const date = new Date(timeMs);
   const year = date.getFullYear();
@@ -73,6 +84,31 @@ export function formatWallClockTime(timeMs: number, timezoneOffsetMinutes: numbe
   return wallClockTimeFormatter.format(toWallClockTimeMs(timeMs, timezoneOffsetMinutes));
 }
 
+export function formatLocalDateLabel(dateKey: string, nowMs: number) {
+  if (dateKey === toLocalDateKey(nowMs)) {
+    return "Today";
+  }
+  if (dateKey === toLocalDateKey(addLocalDays(startOfLocalDay(nowMs), -1))) {
+    return "Yesterday";
+  }
+
+  const date = fromLocalDateKey(dateKey);
+  return date.getFullYear() === new Date(nowMs).getFullYear()
+    ? shortDateFormatter.format(date)
+    : shortDateWithYearFormatter.format(date);
+}
+
+export function formatSessionDaypart(timeMs: number, timezoneOffsetMinutes: number) {
+  const hour = new Date(toWallClockTimeMs(timeMs, timezoneOffsetMinutes)).getUTCHours();
+  if (hour < 12) {
+    return "Morning";
+  }
+  if (hour < 18) {
+    return "Afternoon";
+  }
+  return "Evening";
+}
+
 export function formatScheduledPractice(scheduledAtMs: number, nowMs: number) {
   const time = shortTimeFormatter.format(new Date(scheduledAtMs));
   const dateKey = toLocalDateKey(scheduledAtMs);
@@ -81,6 +117,9 @@ export function formatScheduledPractice(scheduledAtMs: number, nowMs: number) {
   }
   if (dateKey === toLocalDateKey(addLocalDays(startOfLocalDay(nowMs), 1))) {
     return `Tomorrow, ${time}`;
+  }
+  if (dateKey === toLocalDateKey(addLocalDays(startOfLocalDay(nowMs), 7))) {
+    return `Next ${weekdayFormatter.format(new Date(scheduledAtMs))}, ${time}`;
   }
   return `${weekdayFormatter.format(new Date(scheduledAtMs))}, ${time}`;
 }
