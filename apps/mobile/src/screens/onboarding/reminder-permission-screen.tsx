@@ -11,30 +11,19 @@ import { useMeditation } from "@/providers/meditation-provider";
 
 export function ReminderPermissionScreen() {
   const router = useRouter();
-  const { preferences, requestReminderPermission, rescheduleReminders, savePreferences } = useMeditation();
+  const { preferences, saveReminderPreferences } = useMeditation();
   const [isContinuing, setIsContinuing] = useState(false);
 
   const finishOnboarding = async (requestPermission: boolean) => {
     setIsContinuing(true);
     try {
-      const permission = requestPermission
-        ? await requestReminderPermission().catch(() => "denied" as const)
-        : "denied";
-      let nextPreferences = {
+      const nextPreferences = {
         ...preferences,
-        remindersEnabled: requestPermission && permission === "granted",
+        remindersEnabled: requestPermission,
         onboardingStep: "complete" as const,
         onboardingCompleted: true,
       };
-      await savePreferences(nextPreferences);
-      try {
-        await rescheduleReminders(nextPreferences);
-      } catch {
-        if (nextPreferences.remindersEnabled) {
-          nextPreferences = { ...nextPreferences, remindersEnabled: false };
-          await savePreferences(nextPreferences);
-        }
-      }
+      await saveReminderPreferences(nextPreferences, { requestPermission });
       router.replace("/(tabs)/today");
     } catch {
       setIsContinuing(false);

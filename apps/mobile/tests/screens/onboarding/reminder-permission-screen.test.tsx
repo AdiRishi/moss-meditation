@@ -29,4 +29,36 @@ describe("ReminderPermissionScreen", () => {
     });
     expect(notifications.requestPermission).not.toHaveBeenCalled();
   });
+
+  it("turns reminders back off when scheduling observes denied permission", async () => {
+    const notifications = createNotifications("undetermined");
+    notifications.rescheduleWeeklyReminders.mockResolvedValue({
+      permissionStatus: "denied",
+      scheduledCount: 0,
+    });
+    const { getByText, store } = renderMeditationScreen(<ReminderPermissionScreen />, { notifications });
+
+    fireEvent.press(getByText("Allow reminders"));
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/(tabs)/today"));
+    await expect(store.loadPreferences()).resolves.toMatchObject({
+      onboardingCompleted: true,
+      remindersEnabled: false,
+    });
+    expect(notifications.requestPermission).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves granted reminder intent when native scheduling needs a retry", async () => {
+    const notifications = createNotifications("undetermined");
+    notifications.rescheduleWeeklyReminders.mockRejectedValueOnce(new Error("Scheduling unavailable"));
+    const { getByText, store } = renderMeditationScreen(<ReminderPermissionScreen />, { notifications });
+
+    fireEvent.press(getByText("Allow reminders"));
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/(tabs)/today"));
+    await expect(store.loadPreferences()).resolves.toMatchObject({
+      onboardingCompleted: true,
+      remindersEnabled: true,
+    });
+  });
 });

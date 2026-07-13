@@ -20,7 +20,6 @@ import {
   localNotifications,
   type LocalNotificationPermissionStatus,
   type LocalNotifications,
-  type ReminderSchedulingResult,
 } from "@/services/local-notifications";
 
 export type Clock = {
@@ -52,9 +51,17 @@ type MeditationContextValue = MeditationState & {
   abandonSession(): Promise<void>;
   setSessionFeeling(id: string, feeling: Feeling | null): Promise<void>;
   acknowledgeSession(id: string): Promise<void>;
-  requestReminderPermission(): Promise<LocalNotificationPermissionStatus>;
-  rescheduleReminders(preferences?: AppPreferences): Promise<ReminderSchedulingResult>;
+  saveReminderPreferences(
+    preferences: AppPreferences,
+    options?: { requestPermission?: boolean },
+  ): Promise<ReminderPreferencesSaveResult>;
   resetAllData(): Promise<void>;
+};
+
+export type ReminderPreferencesSaveResult = {
+  preferences: AppPreferences;
+  scheduledCount: number;
+  status: "disabled" | "no-scheduled-times" | "permission-denied" | "scheduled" | "sync-failed";
 };
 
 const MeditationContext = createContext<MeditationContextValue | null>(null);
@@ -181,6 +188,76 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     [store],
   );
 
+  const saveReminderPreferences = useCallback(
+    async (
+      preferences: AppPreferences,
+      { requestPermission = false }: { requestPermission?: boolean } = {},
+    ): Promise<ReminderPreferencesSaveResult> => {
+      const remindersRequested = preferences.remindersEnabled;
+      let permission = state.notificationPermission;
+      if (remindersRequested && permission !== "granted" && requestPermission) {
+        permission = notifications ? await notifications.requestPermission() : "denied";
+      }
+
+      let effectivePreferences =
+        remindersRequested && permission === "denied" ? { ...preferences, remindersEnabled: false } : preferences;
+      await store.savePreferences(effectivePreferences);
+
+      let schedulingResult;
+      try {
+        schedulingResult = notifications
+          ? await notifications.rescheduleWeeklyReminders(effectivePreferences)
+          : { permissionStatus: "denied" as const, scheduledCount: 0 };
+      } catch {
+        stateRevision.current += 1;
+        setState((current) => ({
+          ...current,
+          preferences: effectivePreferences,
+          notificationPermission: permission,
+        }));
+        return { preferences: effectivePreferences, scheduledCount: 0, status: "sync-failed" };
+      }
+
+      permission = schedulingResult.permissionStatus;
+      if (effectivePreferences.remindersEnabled && permission !== "granted") {
+        effectivePreferences = { ...effectivePreferences, remindersEnabled: false };
+        await store.savePreferences(effectivePreferences);
+        try {
+          await notifications?.rescheduleWeeklyReminders(effectivePreferences);
+        } catch {
+          stateRevision.current += 1;
+          setState((current) => ({
+            ...current,
+            preferences: effectivePreferences,
+            notificationPermission: permission,
+          }));
+          return { preferences: effectivePreferences, scheduledCount: 0, status: "sync-failed" };
+        }
+      }
+
+      stateRevision.current += 1;
+      setState((current) => ({
+        ...current,
+        preferences: effectivePreferences,
+        notificationPermission: permission,
+      }));
+
+      const status = !effectivePreferences.remindersEnabled
+        ? remindersRequested
+          ? "permission-denied"
+          : "disabled"
+        : schedulingResult.scheduledCount === 0
+          ? "no-scheduled-times"
+          : "scheduled";
+      return {
+        preferences: effectivePreferences,
+        scheduledCount: schedulingResult.scheduledCount,
+        status,
+      };
+    },
+    [notifications, state.notificationPermission, store],
+  );
+
   const startSession = useCallback(
     async (durationMinutes: SessionDuration, completionSound?: CompletionSound) => {
       const nowMs = clock.now();
@@ -291,26 +368,6 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     await refresh();
   }, [notifications, refresh, store]);
 
-  const requestReminderPermission = useCallback(async () => {
-    const permission = notifications ? await notifications.requestPermission() : "denied";
-    stateRevision.current += 1;
-    setState((current) => ({ ...current, notificationPermission: permission }));
-    return permission;
-  }, [notifications]);
-
-  const rescheduleReminders = useCallback(
-    async (preferences = state.preferences) => {
-      if (!notifications) {
-        return { permissionStatus: "denied", scheduledCount: 0 } as const;
-      }
-      const result = await notifications.rescheduleWeeklyReminders(preferences);
-      stateRevision.current += 1;
-      setState((current) => ({ ...current, notificationPermission: result.permissionStatus }));
-      return result;
-    },
-    [notifications, state.preferences],
-  );
-
   const value: MeditationContextValue = {
     ...state,
     reducedMotion: state.preferences.reducedMotion || systemReducedMotion,
@@ -323,8 +380,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     abandonSession: abandonActiveSession,
     setSessionFeeling,
     acknowledgeSession,
-    requestReminderPermission,
-    rescheduleReminders,
+    saveReminderPreferences,
     resetAllData,
   };
 

@@ -29,9 +29,7 @@ export function RemindersScreen() {
       error={meditation.error}
       notificationPermission={meditation.notificationPermission}
       preferences={meditation.preferences}
-      requestReminderPermission={meditation.requestReminderPermission}
-      rescheduleReminders={meditation.rescheduleReminders}
-      savePreferences={meditation.savePreferences}
+      saveReminderPreferences={meditation.saveReminderPreferences}
     />
   );
 }
@@ -41,18 +39,14 @@ type RemindersEditorProps = Pick<
   | "error"
   | "notificationPermission"
   | "preferences"
-  | "requestReminderPermission"
-  | "rescheduleReminders"
-  | "savePreferences"
+  | "saveReminderPreferences"
 >;
 
 function RemindersEditor({
   error,
   notificationPermission,
   preferences,
-  requestReminderPermission,
-  rescheduleReminders,
-  savePreferences,
+  saveReminderPreferences,
 }: RemindersEditorProps) {
   const [draft, setDraft] = useState<AppPreferences>(preferences);
   const [isSaving, setIsSaving] = useState(false);
@@ -62,20 +56,13 @@ function RemindersEditor({
     setIsSaving(true);
     setFeedback(null);
     try {
-      let permission = notificationPermission;
-      if (draft.remindersEnabled && permission === "undetermined") {
-        permission = await requestReminderPermission();
-      }
-
       const wantedReminders = draft.remindersEnabled;
-      let nextPreferences = wantedReminders && permission !== "granted" ? { ...draft, remindersEnabled: false } : draft;
-      await savePreferences(nextPreferences);
+      const result = await saveReminderPreferences(draft, {
+        requestPermission: wantedReminders && notificationPermission === "undetermined",
+      });
+      setDraft(result.preferences);
 
-      let result;
-      try {
-        result = await rescheduleReminders(nextPreferences);
-      } catch {
-        setDraft(nextPreferences);
+      if (result.status === "sync-failed") {
         setFeedback({
           message: "Your choices are saved, but reminders couldn’t be updated. Please try again.",
           tone: "danger",
@@ -83,22 +70,15 @@ function RemindersEditor({
         return;
       }
 
-      if (nextPreferences.remindersEnabled && result.permissionStatus !== "granted") {
-        nextPreferences = { ...nextPreferences, remindersEnabled: false };
-        await savePreferences(nextPreferences);
-        await rescheduleReminders(nextPreferences);
-      }
-      setDraft(nextPreferences);
-
       if (!wantedReminders) {
         setFeedback({ message: "Reminders are off. Your timing choices are saved.", tone: "success" });
-      } else if (!nextPreferences.remindersEnabled) {
+      } else if (result.status === "permission-denied") {
         setFeedback({
           message:
             "Reminders remain off. Your timing choices are saved, and you can allow notifications in device settings whenever you want.",
           tone: "muted",
         });
-      } else if (result.scheduledCount === 0) {
+      } else if (result.status === "no-scheduled-times") {
         setFeedback({
           message: "Your choices are saved. No reminders currently fall outside quiet hours.",
           tone: "muted",

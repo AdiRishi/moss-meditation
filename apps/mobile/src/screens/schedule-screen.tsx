@@ -28,18 +28,17 @@ export function ScheduleScreen() {
     <ScheduleEditor
       error={meditation.error}
       preferences={meditation.preferences}
-      rescheduleReminders={meditation.rescheduleReminders}
-      savePreferences={meditation.savePreferences}
+      saveReminderPreferences={meditation.saveReminderPreferences}
     />
   );
 }
 
 type ScheduleEditorProps = Pick<
   ReturnType<typeof useMeditation>,
-  "error" | "preferences" | "rescheduleReminders" | "savePreferences"
+  "error" | "preferences" | "saveReminderPreferences"
 >;
 
-function ScheduleEditor({ error, preferences, rescheduleReminders, savePreferences }: ScheduleEditorProps) {
+function ScheduleEditor({ error, preferences, saveReminderPreferences }: ScheduleEditorProps) {
   const [draft, setDraft] = useState<AppPreferences>(preferences);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<SaveFeedback>(null);
@@ -48,10 +47,9 @@ function ScheduleEditor({ error, preferences, rescheduleReminders, savePreferenc
     setIsSaving(true);
     setFeedback(null);
     try {
-      await savePreferences(draft);
-      try {
-        await rescheduleReminders(draft);
-      } catch {
+      const result = await saveReminderPreferences(draft);
+      setDraft(result.preferences);
+      if (result.status === "sync-failed") {
         setFeedback({
           message: "Schedule saved. Reminders couldn’t be updated, so please save once more.",
           tone: "muted",
