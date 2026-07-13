@@ -6,7 +6,6 @@ import { StandardView } from "@/components/ui/screen-containers/standard-view";
 import { Typography } from "@/components/ui/typography";
 import { EnsoMark } from "@/components/ui/zen/brand-assets";
 import { useMeditation } from "@/providers/meditation-provider";
-import { LocalDataErrorScreen } from "@/screens/error/local-data-error-screen";
 
 const ONBOARDING_ROUTES = {
   welcome: "/onboarding/welcome",
@@ -17,8 +16,7 @@ const ONBOARDING_ROUTES = {
 } as const;
 
 export function LaunchScreen() {
-  const { activeSession, error, isReady, pendingCompletion, preferences, reducedMotion, refresh, resetAllData } =
-    useMeditation();
+  const { activeSession, isReady, pendingCompletion, preferences, reducedMotion } = useMeditation();
   const [brandMomentComplete, setBrandMomentComplete] = useState(false);
 
   useEffect(() => {
@@ -31,17 +29,6 @@ export function LaunchScreen() {
 
   if (!isReady) {
     return null;
-  }
-
-  if (error) {
-    return (
-      <LocalDataErrorScreen
-        onRetry={async () => {
-          await refresh();
-        }}
-        onReset={resetAllData}
-      />
-    );
   }
 
   if (!brandMomentComplete) {

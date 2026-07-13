@@ -229,6 +229,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
   }, [clock, notifications, store]);
 
   const completeActiveSession = useCallback(async () => {
+    const activeSessionId = state.activeSession?.id;
     const completed = await store.completeActiveSession(clock.now());
     if (notifications) {
       await notifications.syncSessionCompletion(null).catch(() => undefined);
@@ -241,8 +242,8 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
       completedSessions,
       pendingCompletion: pendingCompletion(completedSessions),
     }));
-    return completed;
-  }, [clock, notifications, store]);
+    return completed ?? completedSessions.find((session) => session.id === activeSessionId) ?? null;
+  }, [clock, notifications, state.activeSession?.id, store]);
 
   const abandonActiveSession = useCallback(async () => {
     await store.abandonActiveSession();

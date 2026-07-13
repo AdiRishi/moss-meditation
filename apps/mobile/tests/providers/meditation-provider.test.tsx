@@ -133,6 +133,28 @@ describe("MeditationProvider", () => {
     await expect(store.loadActiveSession()).resolves.toMatchObject({ status: "running" });
   });
 
+  it("returns the completed session when another local writer wins completion", async () => {
+    let nowMs = STARTED_AT_MS;
+    const store = new InMemoryMeditationStore();
+    const notifications = createNotifications();
+    const wrapper = createWrapper({ store, clock: { now: () => nowMs }, notifications });
+    const { result } = renderHook(useMeditation, { wrapper });
+
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    await act(async () => {
+      await result.current.startSession(5);
+    });
+    nowMs += 5 * 60_000;
+    await store.completeActiveSession(nowMs);
+
+    let completed;
+    await act(async () => {
+      completed = await result.current.completeSession();
+    });
+
+    expect(completed).toMatchObject({ id: result.current.pendingCompletion?.id });
+  });
+
   it("reconciles reminders again after a later refresh", async () => {
     const store = new InMemoryMeditationStore();
     const notifications = createNotifications();

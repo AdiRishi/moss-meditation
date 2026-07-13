@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AppProviders } from "@/components/app-providers";
 import { AppThemeProvider } from "@/components/app-theme-provider";
+import { MeditationDataBoundary } from "@/components/meditation-data-boundary";
 import "@/global.css";
 import { useMeditation } from "@/providers/meditation-provider";
 import { GenericErrorScreen } from "@/screens/error/generic-error-screen";
@@ -49,10 +50,12 @@ function RootNavigator() {
   }, [isReady]);
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? "none" : "fade" }}>
-      <Stack.Screen name="meditation" options={{ gestureEnabled: false }} />
-      <Stack.Screen name="session-complete" options={{ gestureEnabled: false }} />
-    </Stack>
+    <MeditationDataBoundary>
+      <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? "none" : "fade" }}>
+        <Stack.Screen name="meditation" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="session-complete" options={{ gestureEnabled: false }} />
+      </Stack>
+    </MeditationDataBoundary>
   );
 }
 

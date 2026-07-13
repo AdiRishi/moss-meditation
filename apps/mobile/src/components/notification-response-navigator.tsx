@@ -40,7 +40,7 @@ export function NotificationResponseNavigator() {
     try {
       Notifications.clearLastNotificationResponse();
     } catch {
-      handledIdentifier.current = null;
+      // The response remains guarded by its handled identifier.
     }
 
     if (kind === "session-completion") {

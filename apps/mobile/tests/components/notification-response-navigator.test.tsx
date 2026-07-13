@@ -17,6 +17,7 @@ jest.mock("@/providers/meditation-provider", () => ({
 
 const mockedUseMeditation = jest.mocked(useMeditation);
 const mockedUseLastResponse = jest.mocked(Notifications.useLastNotificationResponse);
+const mockedClearLastResponse = jest.mocked(Notifications.clearLastNotificationResponse);
 
 function weeklyReminderResponse() {
   return {
@@ -39,6 +40,7 @@ function weeklyReminderResponse() {
 describe("NotificationResponseNavigator", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedClearLastResponse.mockImplementation(() => undefined);
     mockedUseMeditation.mockReturnValue({
       activeSession: null,
       isReady: true,
@@ -46,6 +48,29 @@ describe("NotificationResponseNavigator", () => {
       preferences: { onboardingCompleted: true },
       refresh: jest.fn(),
     } as unknown as ReturnType<typeof useMeditation>);
+  });
+
+  it("keeps a handled response deduped when native clearing fails", () => {
+    mockedClearLastResponse.mockImplementation(() => {
+      throw new Error("Native response cache is unavailable");
+    });
+    mockedUseLastResponse.mockReturnValue(weeklyReminderResponse());
+    const screen = render(<NotificationResponseNavigator />);
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+
+    mockedUseMeditation.mockReturnValue({
+      activeSession: { id: "started-session" },
+      error: null,
+      isReady: true,
+      pendingCompletion: null,
+      preferences: { onboardingCompleted: true },
+      refresh: jest.fn(),
+    } as unknown as ReturnType<typeof useMeditation>);
+    screen.rerender(<NotificationResponseNavigator />);
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it("handles a later delivery of the same repeating reminder", () => {

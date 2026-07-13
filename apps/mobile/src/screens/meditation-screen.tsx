@@ -1,7 +1,7 @@
 import { useKeepAwake } from "expo-keep-awake";
 import { Redirect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, BackHandler, Pressable, View } from "react-native";
+import { Alert, AppState, BackHandler, Pressable, View } from "react-native";
 
 import { BreathingField } from "@/components/screens/meditation/breathing-field";
 import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
@@ -22,6 +22,7 @@ export function MeditationScreen() {
     abandonSession,
     activeSession,
     completeSession,
+    notificationPermission,
     pauseSession,
     pendingCompletion,
     reducedMotion,
@@ -29,6 +30,10 @@ export function MeditationScreen() {
   } = useMeditation();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [completionError, setCompletionError] = useState(false);
+  const [observedSessionId] = useState(activeSession?.id);
+  const [mayHaveCompletedInBackground, setMayHaveCompletedInBackground] = useState(
+    AppState.currentState !== "active",
+  );
   const completionStarted = useRef(false);
   const { error: transitionError, isPending: transitionPending, run: runTransition } = useAsyncAction();
 
@@ -37,7 +42,22 @@ export function MeditationScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active") {
+        setMayHaveCompletedInBackground(true);
+        return;
+      }
+
+      if (activeSession && !projectSession(activeSession, Date.now()).isComplete) {
+        setMayHaveCompletedInBackground(false);
+      }
+    });
+    return () => subscription.remove();
+  }, [activeSession]);
+
   const projection = activeSession ? projectSession(activeSession, nowMs) : null;
+  const shouldPlayCompletionSound = notificationPermission !== "granted" || !mayHaveCompletedInBackground;
 
   const confirmEnd = useCallback(() => {
     Alert.alert("End this session?", "An early ending will not be added to your progress.", [
@@ -74,21 +94,41 @@ export function MeditationScreen() {
     void (async () => {
       try {
         const completed = await completeSession();
-        const sessionId = completed?.id ?? pendingCompletion?.id;
+        const sessionId = completed?.id ?? pendingCompletion?.id ?? observedSessionId;
         router.replace({
           pathname: "/session-complete",
-          params: sessionId ? { id: sessionId, playSound: "1" } : {},
+          params: sessionId
+            ? { id: sessionId, ...(shouldPlayCompletionSound ? { playSound: "1" } : {}) }
+            : {},
         });
       } catch {
         completionStarted.current = false;
         setCompletionError(true);
       }
     })();
-  }, [activeSession, completeSession, completionError, pendingCompletion?.id, projection?.isComplete, router]);
+  }, [
+    activeSession,
+    completeSession,
+    completionError,
+    pendingCompletion?.id,
+    projection?.isComplete,
+    router,
+    shouldPlayCompletionSound,
+    observedSessionId,
+  ]);
 
   if (!activeSession || !projection) {
     if (pendingCompletion) {
-      return <Redirect href={{ pathname: "/session-complete", params: { id: pendingCompletion.id } }} />;
+      const playSound =
+        pendingCompletion.id === observedSessionId && shouldPlayCompletionSound ? "1" : undefined;
+      return (
+        <Redirect
+          href={{
+            pathname: "/session-complete",
+            params: { id: pendingCompletion.id, ...(playSound ? { playSound } : {}) },
+          }}
+        />
+      );
     }
     return <Redirect href="/(tabs)/today" />;
   }
