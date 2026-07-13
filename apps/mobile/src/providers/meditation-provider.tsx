@@ -114,16 +114,15 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
           activeSession = await store.loadActiveSession();
         }
 
-        if (notifications) {
-          await notifications
-            .syncSessionCompletion(sessionCompletionNotification(activeSession, clock.now()))
-            .catch(() => undefined);
-        }
-
-        const completedSessions = await store.listCompletedSessions();
-        const notificationPermission = notifications
-          ? await notifications.getPermissionStatus().catch(() => null)
-          : null;
+        const [completedSessions, notificationPermission] = await Promise.all([
+          store.listCompletedSessions(),
+          notifications ? notifications.getPermissionStatus().catch(() => null) : Promise.resolve(null),
+          notifications
+            ? notifications
+                .syncSessionCompletion(sessionCompletionNotification(activeSession, clock.now()))
+                .catch(() => undefined)
+            : Promise.resolve(),
+        ]);
         if (refreshRevision !== stateRevision.current) {
           continue;
         }

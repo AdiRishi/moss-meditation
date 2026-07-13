@@ -133,6 +133,45 @@ describe("MeditationProvider", () => {
     await expect(store.loadActiveSession()).resolves.toMatchObject({ status: "running" });
   });
 
+  it("loads session history while independent notification checks are in flight", async () => {
+    class ObservableSessionStore extends InMemoryMeditationStore {
+      listCalls = 0;
+
+      override async listCompletedSessions() {
+        this.listCalls += 1;
+        return super.listCompletedSessions();
+      }
+    }
+
+    const store = new ObservableSessionStore();
+    const notifications = createNotifications();
+    let resolvePermission: ((permission: "granted") => void) | undefined;
+    let resolveSync: (() => void) | undefined;
+    notifications.getPermissionStatus.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePermission = resolve;
+        }),
+    );
+    notifications.syncSessionCompletion.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSync = () => resolve(true);
+        }),
+    );
+    const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
+    const { result } = renderHook(useMeditation, { wrapper });
+
+    await waitFor(() => expect(store.listCalls).toBe(1));
+    expect(result.current.isReady).toBe(false);
+
+    await act(async () => {
+      resolvePermission?.("granted");
+      resolveSync?.();
+    });
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+  });
+
   it("returns the completed session when another local writer wins completion", async () => {
     let nowMs = STARTED_AT_MS;
     const store = new InMemoryMeditationStore();
