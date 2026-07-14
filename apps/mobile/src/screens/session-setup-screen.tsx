@@ -37,7 +37,7 @@ export function SessionSetupScreen() {
   };
 
   return (
-    <StandardScrollView contentContainerClassName="min-h-full justify-between gap-8 pb-6">
+    <StandardScrollView fillViewport contentContainerClassName="justify-between gap-8 pb-6">
       <View className="gap-9">
         <ScreenHeader />
         <Typography accessibilityRole="header" variant="h1">

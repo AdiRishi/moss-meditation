@@ -22,6 +22,8 @@ HeroUI Native: `Card` extends `Surface`, which applies base padding. To remove d
 
 Do not wrap these containers in `SafeAreaView` or apply Uniwind safe-area utilities (`py-safe`, `pt-safe-*`, `pb-safe-*`). Use `edgeToEdge` only for intentional full-bleed screens, and put content spacing in `contentContainerClassName`.
 
+For full-height compositions that pin content to the visible bottom edge (`justify-between` with a footer action), pass `fillViewport` to the scroll container instead of `min-h-full` or `grow`. Percentage heights and `flexGrow` resolve against the scroll frame, which on iOS includes the safe areas delivered as content insets, so they overflow the visible viewport.
+
 ## Comments
 
 Prefer clearer code over explanatory comments. Use short JSX section comments only to mark meaningful blocks in larger components.

@@ -31,7 +31,7 @@ export function ReminderPermissionScreen() {
   };
 
   return (
-    <StandardScrollView contentContainerClassName="min-h-full justify-between gap-6 pb-6 pt-12">
+    <StandardScrollView fillViewport contentContainerClassName="justify-between gap-6 pb-6 pt-12">
       <View className="gap-7">
         <Typography accessibilityRole="header" variant="h1">
           A gentle reminder,{"\n"}when you want one.

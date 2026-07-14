@@ -35,7 +35,7 @@ export function OnboardingScheduleScreen() {
 
   return (
     <>
-      <StandardScrollView contentContainerClassName="min-h-full justify-between gap-8 pb-6">
+      <StandardScrollView fillViewport contentContainerClassName="justify-between gap-8 pb-6">
         <View className="gap-8">
           <ScreenHeader onBack={() => router.back()} />
           <Typography accessibilityRole="header" variant="h1">

@@ -31,14 +31,16 @@ export function CompletionSoundScreen() {
   };
 
   return (
-    <StandardScrollView contentContainerClassName="min-h-full justify-between gap-8 pb-6">
+    <StandardScrollView fillViewport contentContainerClassName="justify-between gap-8 pb-6">
       <View className="gap-8">
         <ScreenHeader onBack={() => void done()} />
         <View className="gap-2">
           <Typography accessibilityRole="header" variant="h1">
             Completion sound
           </Typography>
-          <Typography tone="accent">Played once, when your time is complete.</Typography>
+          <Typography variant="reflection" tone="accent">
+            Played once, when your time is complete.
+          </Typography>
         </View>
         <View accessibilityRole="radiogroup" className="gap-4">
           {COMPLETION_SOUNDS.map((sound) => {
@@ -54,7 +56,7 @@ export function CompletionSoundScreen() {
                   disabled={action.isPending}
                   onPress={() => void select(sound.id)}
                 >
-                  <View className="size-11 items-center justify-center rounded-full bg-surface-secondary">
+                  <View className="w-8 items-center justify-center">
                     <ZenIcon name={completionSoundIcon(sound.id)} size={23} tintColor={colors.muted} />
                   </View>
                   <Typography className="flex-1">{sound.label}</Typography>

@@ -22,19 +22,19 @@ export function WelcomeScreen() {
   };
 
   return (
-    <StandardScrollView contentContainerClassName="min-h-full justify-between gap-8 pb-6 pt-10">
-      <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(450)} className="gap-3 pt-24">
+    <StandardScrollView fillViewport contentContainerClassName="justify-between gap-8 pb-6 pt-10">
+      <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(450)} className="gap-3 pt-10">
         <Typography accessibilityRole="header" variant="h1">
           Welcome.
         </Typography>
-        <Typography variant="h3" tone="accent" className="max-w-64 font-serif font-normal">
+        <Typography variant="reflection" tone="accent">
           A quieter way to{"\n"}keep your practice.
         </Typography>
       </Animated.View>
 
-      <LandscapeArtwork height={384} className="-mx-6" />
+      <LandscapeArtwork height={296} className="-mx-6" />
 
-      <View className="-mt-12 -translate-y-8 gap-12">
+      <View className="gap-8">
         <View className="flex-row justify-center gap-2" accessibilityLabel="Onboarding step 1 of 4">
           <View className="size-2 rounded-full bg-accent" />
           <View className="size-2 rounded-full bg-stone" />
