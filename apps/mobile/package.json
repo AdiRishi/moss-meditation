@@ -87,10 +87,7 @@
       "text-summary",
       "lcov"
     ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "<rootDir>/../../servers/api/"
-    ],
+    "testPathIgnorePatterns": ["/node_modules/"],
     "testMatch": [
       "<rootDir>/tests/**/*.test.[jt]s?(x)"
     ],

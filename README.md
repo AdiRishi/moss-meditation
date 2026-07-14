@@ -45,16 +45,15 @@ The complete foundation lives in the repository:
 
 ## Engineering
 
-Zen is a TypeScript monorepo built for iOS and Android. The mobile app uses Expo and React Native, keeps preferences and practice history in on-device SQLite, and does not require an account or server connection. The repository’s Nitro workspace remains independently available for future or separate server work.
+Zen is a TypeScript app built for iOS and Android. It uses Expo and React Native, keeps preferences and practice history in on-device SQLite, and does not require an account or server connection.
 
-| Layer     | Technology                                             |
-| --------- | ------------------------------------------------------ |
-| App       | Expo 57, React Native 0.86, React 19, Expo Router      |
-| Interface | HeroUI Native, Uniwind, Tailwind CSS v4, Reanimated    |
-| Data      | Expo SQLite, Zod, local notifications                  |
-| Server    | Not required by the app runtime                        |
-| Quality   | Strict TypeScript, Jest, Vitest, ESLint, Oxlint, Oxfmt |
-| Workspace | pnpm, Turborepo                                        |
+| Layer     | Technology                                          |
+| --------- | --------------------------------------------------- |
+| App       | Expo 57, React Native 0.86, React 19, Expo Router   |
+| Interface | HeroUI Native, Uniwind, Tailwind CSS v4, Reanimated |
+| Data      | Expo SQLite, Zod, local notifications               |
+| Quality   | Strict TypeScript, Jest, ESLint, Oxfmt              |
+| Workspace | pnpm                                                |
 
 ## Quick start
 
@@ -81,8 +80,7 @@ pnpm android
 | Command             | Purpose                                        |
 | ------------------- | ---------------------------------------------- |
 | `pnpm run check`    | Run lint, formatting checks, and TypeScript    |
-| `pnpm run test`     | Run app and server tests                       |
-| `pnpm run compile`  | Compile shared workspace packages              |
+| `pnpm run test`     | Run app tests                                  |
 | `pnpm run format`   | Format the repository with Oxfmt               |
 | `pnpm run prebuild` | Regenerate the native iOS and Android projects |
 
@@ -90,8 +88,6 @@ pnpm android
 
 ```text
 apps/mobile/     Expo app, routes, screens, and interface components
-servers/api/     Independent Nitro and tRPC workspace
-packages/        Shared infrastructure and TypeScript configuration
 docs/            Product vision, design system, and architecture decisions
 ```
 

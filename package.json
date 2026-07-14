@@ -8,23 +8,15 @@
     "prebuild": "pnpm --filter @repo/mobile exec expo prebuild --clean",
     "android": "pnpm --filter @repo/mobile android",
     "ios": "pnpm --filter @repo/mobile ios",
-    "compile": "turbo run compile",
-    "lint": "pnpm run lint:app && pnpm run lint:server",
-    "lint:app": "turbo run lint --filter=@repo/mobile",
-    "lint:server": "turbo run lint --filter=@repo/api --filter=@repo/rpc",
-    "test": "pnpm run test:app && pnpm run test:server",
-    "test:app": "turbo run test --filter=@repo/mobile",
-    "test:server": "turbo run test --filter=@repo/api",
-    "typecheck": "turbo run typecheck",
+    "lint": "pnpm --filter @repo/mobile lint",
+    "test": "pnpm --filter @repo/mobile test",
+    "typecheck": "pnpm --filter @repo/mobile typecheck",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck",
-    "server:dev": "pnpm run compile && pnpm --filter @repo/api dev",
-    "server:build": "turbo run build --filter @repo/api"
+    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck"
   },
   "devDependencies": {
-    "oxfmt": "^0.58.0",
-    "turbo": "^2.10.4"
+    "oxfmt": "^0.58.0"
   },
   "packageManager": "pnpm@11.10.0"
 }

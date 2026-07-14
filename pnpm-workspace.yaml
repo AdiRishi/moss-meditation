@@ -1,7 +1,5 @@
 packages:
   - apps/*
-  - servers/*
-  - packages/*
 
 enableGlobalVirtualStore: false
 
