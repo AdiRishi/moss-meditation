@@ -79,8 +79,9 @@ pnpm android
 
 | Command             | Purpose                                        |
 | ------------------- | ---------------------------------------------- |
+| `pnpm run compile`  | Compile shared internal packages through Turbo |
 | `pnpm run check`    | Run lint, formatting checks, and TypeScript    |
-| `pnpm run test`     | Run app tests                                  |
+| `pnpm run test`     | Run workspace tests through Turbo              |
 | `pnpm run format`   | Format the repository with Oxfmt               |
 | `pnpm run prebuild` | Regenerate the native iOS and Android projects |
 

@@ -19,9 +19,12 @@ Repository knowledge:
 ```bash
 pnpm install              # Install workspace dependencies
 
+pnpm run compile          # Compile shared internal packages through Turbo
 pnpm run check            # Turbo lint + Oxfmt check + Turbo TypeScript
 pnpm run lint             # Run workspace lint tasks through Turbo
+pnpm run lint:app         # Run the Expo app lint task through Turbo
 pnpm run test             # Run workspace tests through Turbo
+pnpm run test:app         # Run the Expo app tests through Turbo
 pnpm run typecheck        # Run workspace TypeScript tasks through Turbo
 pnpm run format           # Oxfmt write
 
