@@ -372,11 +372,11 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
   );
 
   const resetAllData = useCallback(async () => {
-    await store.resetAllData();
-    invalidatePendingRefresh();
     if (notifications) {
       await notifications.clearAllManagedNotifications();
     }
+    await store.resetAllData();
+    invalidatePendingRefresh();
     await refresh();
   }, [invalidatePendingRefresh, notifications, refresh, store]);
 
