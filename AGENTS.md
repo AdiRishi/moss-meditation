@@ -19,10 +19,10 @@ Repository knowledge:
 ```bash
 pnpm install              # Install workspace dependencies
 
-pnpm run check            # Expo ESLint + Oxfmt check + TypeScript
-pnpm run lint             # Expo ESLint
-pnpm run test             # Jest app tests
-pnpm run typecheck        # App and app-test TypeScript
+pnpm run check            # Turbo lint + Oxfmt check + Turbo TypeScript
+pnpm run lint             # Run workspace lint tasks through Turbo
+pnpm run test             # Run workspace tests through Turbo
+pnpm run typecheck        # Run workspace TypeScript tasks through Turbo
 pnpm run format           # Oxfmt write
 
 pnpm ios                  # Build and start the iOS app / simulator
@@ -47,7 +47,7 @@ Commit throughout development at meaningful, reviewable checkpoints instead of w
 
 ## Architecture
 
-This repository contains an Expo SDK 57 / React Native 0.86 / React 19 app using Expo Router, Uniwind, HeroUI Native, SQLite, and Zod. Its product runtime is fully local to the device.
+This is a pnpm/Turbo workspace whose active product workspace is an Expo SDK 57 / React Native 0.86 / React 19 app using Expo Router, Uniwind, HeroUI Native, SQLite, and Zod. Its product runtime is fully local to the device. The `packages/*` and `servers/*` workspace globs are retained as intentional scaffolding for future workspaces backed by a concrete product need.
 
 The mobile state path is:
 

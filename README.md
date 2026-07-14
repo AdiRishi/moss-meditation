@@ -45,7 +45,7 @@ The complete foundation lives in the repository:
 
 ## Engineering
 
-Zen is a TypeScript app built for iOS and Android. It uses Expo and React Native, keeps preferences and practice history in on-device SQLite, and does not require an account or server connection.
+Zen is a TypeScript monorepo scaffold whose current product is built for iOS and Android. The app uses Expo and React Native, keeps preferences and practice history in on-device SQLite, and does not require an account or server connection.
 
 | Layer     | Technology                                          |
 | --------- | --------------------------------------------------- |
@@ -53,7 +53,7 @@ Zen is a TypeScript app built for iOS and Android. It uses Expo and React Native
 | Interface | HeroUI Native, Uniwind, Tailwind CSS v4, Reanimated |
 | Data      | Expo SQLite, Zod, local notifications               |
 | Quality   | Strict TypeScript, Jest, ESLint, Oxfmt              |
-| Workspace | pnpm                                                |
+| Workspace | pnpm, Turborepo                                     |
 
 ## Quick start
 
