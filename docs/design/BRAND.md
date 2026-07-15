@@ -42,12 +42,22 @@ The ensō is the primary symbol. Its open circle represents a practice that is a
 | Sand  | `#E6DFD2` | Elevated surfaces and quiet fills          |
 | Stone | `#CFC6B8` | Borders, separators, and inactive controls |
 | Moss  | `#7B866E` | Brand accent and positive completion       |
-| Slate | `#4B5154` | Secondary text and dark surfaces           |
-| Ink   | `#1E2326` | Primary text, emphasis, and dark canvas    |
+| Slate | `#4B5154` | Secondary text                             |
+| Ink   | `#1E2326` | Primary text and emphasis                  |
 
 Light mode uses Mist as the canvas, warm white for raised surfaces, Ink for primary text, Slate for secondary text, and Moss for selected or affirmative actions.
 
-Dark mode uses Ink as the canvas, Slate-derived surfaces, Mist for primary text, Sand for secondary text, and a softened Moss accent. Dark mode should remain warm and quiet rather than becoming high-contrast black.
+### Night palette
+
+Dark mode is a night identity, not light mode dimmed. The reference is the forest at night: deep warm green, with a few things catching the light.
+
+| Token        | Hex       | Role                                          |
+| ------------ | --------- | --------------------------------------------- |
+| Night Ink    | `#171C18` | Dark canvas; surfaces step lighter from it    |
+| Moonlit Moss | `#A9C08D` | The single luminous accent and completion     |
+| Moss Sand    | `#B7BBA1` | Secondary text, quieter than Mist but legible |
+
+Mist remains primary text. Surfaces are moss-tinted steps that separate tonally without relying on borders. Only Moonlit Moss is allowed to glow; everything else stays warm and quiet rather than high-contrast black. Never produce dark mode by desaturating and darkening the light palette.
 
 ## Typography
 
@@ -108,6 +118,8 @@ Use tabular numerals for timers, durations, streaks, and charts. Avoid bold disp
 ## Components
 
 - **Session ring:** the signature element. A hairline circular track that a moss arc draws closed as a session progresses; the arc always stops short of closing (a 12° ensō gap, "open enough to begin again"). Reused at every scale: around the breathing field, drawn in on completion, and as day rings in rhythm views. Planned days show an empty track; sitting draws the circle.
+- **Living landscape:** the mountain-lake scene is rendered as a living shader, never a static image. It runs full-bleed and dissolves into the canvas — it is the ground of the page, not a picture in a frame. Silhouettes never move; only the atmosphere does.
+- **Breathing field:** a luminous moss orb whose radius breathes on the brand rhythm, with a soft ink-wash edge. It sits inside the session ring during practice and appears small as a quiet state marker elsewhere.
 - **Primary action:** Moss fill, Mist label, full pill, full-width when it closes a decision.
 - **Secondary action:** transparent or Sand fill with Ink label.
 - **Cards:** warm surface, quiet border, one clear purpose.
@@ -126,6 +138,7 @@ Motion should feel like breath, never spectacle.
 - Breathing loop: 2.4–3.2 seconds.
 - Use gentle ease-out on entry and ease-in on exit.
 - Avoid bounce, overshoot, rapid parallax, and decorative looping.
+- Ambient scenes drift like weather: mist, water light, and glow may move slowly and continuously, but landforms and structure never do.
 - Respect reduced-motion settings with fades and static states.
 
 ## Sound and Haptics
