@@ -4,8 +4,8 @@ import { View } from "react-native";
 import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
 import { StickyFooterScrollView } from "@/components/ui/screen-containers/sticky-footer-scroll-view";
 import { Typography } from "@/components/ui/typography";
-import { ScreenHeader } from "@/components/ui/zen/screen-header";
-import { ZenPrimaryButton } from "@/components/ui/zen/zen-button";
+import { ScreenHeader } from "@/components/ui/moss/screen-header";
+import { MossPrimaryButton } from "@/components/ui/moss/moss-button";
 import { cn } from "@/lib/cn";
 
 type SettingsScreenLayoutProps = {
@@ -70,13 +70,13 @@ export function SettingsFormLayout({
       </StickyFooterScrollView.FormBody>
       <StickyFooterScrollView.Footer className="border-t border-border">
         {feedback ? <View className="pb-3">{feedback}</View> : null}
-        <ZenPrimaryButton
+        <MossPrimaryButton
           accessibilityState={{ busy: isSaving, disabled: isSaving || saveDisabled }}
           isDisabled={isSaving || saveDisabled}
           onPress={onSave}
         >
           {isSaving ? "Saving…" : saveLabel}
-        </ZenPrimaryButton>
+        </MossPrimaryButton>
       </StickyFooterScrollView.Footer>
     </StickyFooterScrollView.Root>
   );
