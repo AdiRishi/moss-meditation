@@ -22,7 +22,8 @@
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": ["com.google.android.gms.permission.AD_ID"],
-      "package": "com.arishi.moss"
+      "package": "com.arishi.moss",
+      "permissions": ["android.permission.MODIFY_AUDIO_SETTINGS"]
     },
     "plugins": [
       "expo-router",
@@ -157,6 +158,16 @@
       "typedRoutes": true,
       "reactCompiler": true,
       "autolinkingModuleResolution": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "expo-navigation-bar": {
+        "enforceContrast": false
+      },
+      "eas": {
+        "projectId": "328ecc04-e05a-47c5-98f7-366663efa9c3"
+      }
+    },
+    "owner": "ar-software"
   }
 }
