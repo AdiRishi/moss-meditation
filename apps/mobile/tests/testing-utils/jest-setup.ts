@@ -11,6 +11,7 @@ jest.mock("react-native-reanimated", () => {
   return {
     ...Reanimated,
     default: Reanimated.default,
+    useFrameCallback: () => ({ setActive: jest.fn() }),
     useReducedMotion: () => false,
   };
 });
