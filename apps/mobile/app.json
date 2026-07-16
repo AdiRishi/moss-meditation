@@ -10,7 +10,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.arishi.moss",
+      "bundleIdentifier": "com.arsoftware.moss",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -25,7 +25,7 @@
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": ["com.google.android.gms.permission.AD_ID"],
-      "package": "com.arishi.moss",
+      "package": "com.arsoftware.moss",
       "permissions": ["android.permission.MODIFY_AUDIO_SETTINGS"]
     },
     "plugins": [
