@@ -4,6 +4,8 @@ import { EnsoMark } from "@/components/ui/moss/brand-assets";
 import { MossCard } from "@/components/ui/moss/moss-card";
 import { Typography } from "@/components/ui/typography";
 
+import { AppVersionLabel } from "./app-version-label";
+
 export function AboutPanel({ version }: { version: string }) {
   return (
     <View className="gap-8">
@@ -24,9 +26,7 @@ export function AboutPanel({ version }: { version: string }) {
         <Typography variant="h3">Support the practice without becoming the focus of it.</Typography>
       </MossCard>
 
-      <Typography variant="small" tone="muted" align="center" selectable>
-        Version {version}
-      </Typography>
+      <AppVersionLabel version={version} />
     </View>
   );
 }

@@ -2,6 +2,10 @@ import { renderWithSafeArea } from "@tests/testing-utils/render-meditation-scree
 
 import { AboutScreen } from "@/screens/about-screen";
 
+jest.mock("expo-application", () => ({
+  nativeApplicationVersion: "9.9.9",
+}));
+
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn() }),
 }));
@@ -12,6 +16,6 @@ describe("<AboutScreen />", () => {
 
     getByText("A quiet rhythm for daily practice.");
     getByText("Support the practice without becoming the focus of it.");
-    getByText(/^Version /);
+    getByText("Version 9.9.9");
   });
 });
