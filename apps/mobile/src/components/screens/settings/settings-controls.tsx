@@ -1,13 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEffect, useState, type ReactNode } from "react";
 import { Switch, useWindowDimensions, View } from "react-native";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { GroupedList } from "@/components/ui/moss/list-row";
 import { MossCard } from "@/components/ui/moss/moss-card";
@@ -165,12 +159,7 @@ export function PracticeTimeControls({
     <GroupedList>
       {times.map((time) => (
         // Added times fade in, removed times fade out, and the list glides closed.
-        <Animated.View
-          key={time.id}
-          entering={crossfadeIn()}
-          exiting={crossfadeOut()}
-          layout={glide(reducedMotion)}
-        >
+        <Animated.View key={time.id} entering={crossfadeIn()} exiting={crossfadeOut()} layout={glide(reducedMotion)}>
           <View className="min-h-20 gap-3 px-4 py-3">
             <View className="flex-row items-center gap-3">
               <View className="w-8 items-center justify-center">

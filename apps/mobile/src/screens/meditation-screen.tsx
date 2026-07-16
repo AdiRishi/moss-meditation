@@ -162,12 +162,7 @@ export function MeditationScreen() {
             continuous
             drawDurationMs={durations.settle}
           >
-            <BreathingField
-              reducedMotion={reducedMotion}
-              ending={isEnding}
-              paused={isPaused}
-              size={ringSize - 44}
-            />
+            <BreathingField reducedMotion={reducedMotion} ending={isEnding} paused={isPaused} size={ringSize - 44} />
           </SessionRing>
           <View className="items-center gap-1">
             <Typography accessibilityRole="header" variant="timer" align="center" tabularNums selectable>
@@ -212,10 +207,7 @@ export function MeditationScreen() {
 
       <StickyFooterScrollView.Footer className="gap-6 bg-transparent">
         {!isEnding ? (
-          <Animated.View
-            exiting={crossfadeOut()}
-            className="flex-row items-center justify-center gap-2"
-          >
+          <Animated.View exiting={crossfadeOut()} className="flex-row items-center justify-center gap-2">
             <MossIcon name={completionSoundIcon(activeSession.completionSound)} size={15} tintColor={colors.muted} />
             <Typography variant="small" tone="muted">
               Ends with {getCompletionSoundLabel(activeSession.completionSound)}

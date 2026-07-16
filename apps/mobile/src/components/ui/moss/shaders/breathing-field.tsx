@@ -164,9 +164,7 @@ export function BreathingField({ reducedMotion, ending, paused = false, size }: 
     // Resting is a shallow dim; the ending is a deep one. Both are mostly an
     // alpha cue, so reduced motion keeps a shortened fade instead of a cut.
     const target = ending ? 1 : paused ? 0.35 : 0;
-    dim.set(
-      withTiming(target, { duration: reducedMotion ? 400 : durations.settle, easing: easings.move }),
-    );
+    dim.set(withTiming(target, { duration: reducedMotion ? 400 : durations.settle, easing: easings.move }));
   }, [dim, ending, paused, reducedMotion]);
 
   const palette = theme === "dark" ? DARK_FIELD : LIGHT_FIELD;

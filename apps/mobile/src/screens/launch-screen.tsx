@@ -1,12 +1,6 @@
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { EnsoMark } from "@/components/ui/moss/brand-assets";
 import { StandardView } from "@/components/ui/screen-containers/standard-view";

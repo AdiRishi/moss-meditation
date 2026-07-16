@@ -51,9 +51,7 @@ export function MossPressable({
 
   const handlePressIn = (event: GestureResponderEvent) => {
     // Highlights and dims land on the same frame as the touch; scale eases.
-    pressed.set(
-      mode === "scale" ? withTiming(1, { duration: durations.pressIn, easing: easings.exit }) : 1,
-    );
+    pressed.set(mode === "scale" ? withTiming(1, { duration: durations.pressIn, easing: easings.exit }) : 1);
     onPressIn?.(event);
   };
 
@@ -78,12 +76,7 @@ export function MossPressable({
   }));
 
   return (
-    <AnimatedPressable
-      style={[surfaceStyle, style]}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      {...props}
-    >
+    <AnimatedPressable style={[surfaceStyle, style]} onPressIn={handlePressIn} onPressOut={handlePressOut} {...props}>
       {mode === "highlight" ? (
         <Animated.View
           pointerEvents="none"
