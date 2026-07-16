@@ -96,8 +96,8 @@ const MOBILE_PACKAGE_FILE = "apps/mobile/package.json";
 const NOTES_FILE = "RELEASE_NOTES.md";
 const TAG_PREFIX = "v";
 const TO_REF = "HEAD";
-const RELEASE_ANALYSIS_MODEL = "gpt-5.5";
-const RELEASE_ANALYSIS_REASONING_EFFORT = "medium";
+const RELEASE_ANALYSIS_MODEL = "gpt-5.6-sol";
+const RELEASE_ANALYSIS_REASONING_EFFORT = "low";
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
 const ACTIVITY_LIMIT = 10;
 
