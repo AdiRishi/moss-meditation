@@ -1,5 +1,18 @@
 # Release Notes
 
+## v1.0.1 - 2026-07-16
+
+### Maintenance and release improvements
+
+This release updates the app’s underlying components and improves the reliability of future releases.
+
+### Internal Changes
+
+- Upgraded Expo and related dependencies.
+- Added automated release preparation and iOS store submission workflows.
+- Corrected store application identifiers and normalized release script formatting.
+- Updated release documentation and analysis tooling.
+
 ## v1.0.0 - 2026-07-16
 
 ### A quiet rhythm for daily practice
