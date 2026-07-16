@@ -1,6 +1,6 @@
 import { Canvas, Fill, Shader, Skia } from "@shopify/react-native-skia";
 import { useIsFocused } from "expo-router/react-navigation";
-import { memo, useEffect } from "react";
+import { useEffect } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import {
   Easing,
@@ -119,7 +119,7 @@ const MAX_FIELD_SIZE = 330;
 const HALF_BREATH_MS = 1_400;
 const RESOLUTION_SCALE = 0.6;
 
-export const BreathingField = memo(function BreathingField({ reducedMotion, ending, size }: BreathingFieldProps) {
+export function BreathingField({ reducedMotion, ending, size }: BreathingFieldProps) {
   const { theme } = useUniwind();
   const { width } = useWindowDimensions();
   // The Progress tab stays mounted behind other tabs: stop breathing and
@@ -191,4 +191,4 @@ export const BreathingField = memo(function BreathingField({ reducedMotion, endi
       </View>
     </View>
   );
-});
+}

@@ -1,6 +1,6 @@
 import { Canvas, Fill, Shader, Skia } from "@shopify/react-native-skia";
 import { useIsFocused } from "expo-router/react-navigation";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useUniwind } from "uniwind";
@@ -496,7 +496,7 @@ function blendScenes(a: Scene, b: Scene, t: number): Scene {
   };
 }
 
-export function sceneAtHour(keyframes: Keyframe[], hour: number): Scene {
+function sceneAtHour(keyframes: Keyframe[], hour: number): Scene {
   const wrapped = ((hour % 24) + 24) % 24;
   for (let index = 0; index < keyframes.length; index += 1) {
     const current = keyframes[index];
@@ -549,7 +549,7 @@ type LivingLandscapeProps = {
   hourOverride?: number;
 };
 
-export const LivingLandscape = memo(function LivingLandscape({
+export function LivingLandscape({
   height = 260,
   className,
   contentPosition = "bottom",
@@ -572,7 +572,7 @@ export const LivingLandscape = memo(function LivingLandscape({
 
   const hour = useFractionalHour(hourOverride);
   const isDark = theme === "dark";
-  const scene = useMemo(() => sceneAtHour(isDark ? DARK_KEYFRAMES : LIGHT_KEYFRAMES, hour), [isDark, hour]);
+  const scene = sceneAtHour(isDark ? DARK_KEYFRAMES : LIGHT_KEYFRAMES, hour);
   const skyTop = isDark ? DARK_SKY_TOP : LIGHT_SKY_TOP;
   const horizon = contentPosition === "bottom" ? 0.52 : 0.6;
   const motion = reducedMotion ? 0 : 1;
@@ -615,18 +615,12 @@ export const LivingLandscape = memo(function LivingLandscape({
     transformOrigin: "left top",
   }));
 
-  const onLayout = useCallback(
-    (event: LayoutChangeEvent) => {
-      width.set(Math.max(1, event.nativeEvent.layout.width));
-      measuredHeight.set(Math.max(1, event.nativeEvent.layout.height));
-    },
-    [width, measuredHeight],
-  );
+  const onLayout = (event: LayoutChangeEvent) => {
+    width.set(Math.max(1, event.nativeEvent.layout.width));
+    measuredHeight.set(Math.max(1, event.nativeEvent.layout.height));
+  };
 
-  const fallback = useMemo(
-    () => ({ backgroundColor: theme === "dark" ? "#232b23" : "#efe8d9" }),
-    [theme],
-  );
+  const fallback = { backgroundColor: theme === "dark" ? "#232b23" : "#efe8d9" };
 
   if (!LANDSCAPE_EFFECT) {
     return <View className={cn("overflow-hidden", className)} style={[{ height }, fallback]} />;
@@ -648,4 +642,4 @@ export const LivingLandscape = memo(function LivingLandscape({
       </Animated.View>
     </View>
   );
-});
+}
