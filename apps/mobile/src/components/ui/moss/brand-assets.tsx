@@ -27,6 +27,8 @@ type LandscapeArtworkProps = {
   contentPosition?: "center" | "bottom";
   fadeTop?: number;
   fadeBottom?: number;
+  /** Pin the scene to a fixed hour (0–24) instead of following the clock. */
+  hourOverride?: number;
 };
 
 export function LandscapeArtwork({
@@ -35,6 +37,7 @@ export function LandscapeArtwork({
   contentPosition = "bottom",
   fadeTop,
   fadeBottom,
+  hourOverride,
 }: LandscapeArtworkProps) {
   return (
     <LivingLandscape
@@ -43,6 +46,7 @@ export function LandscapeArtwork({
       contentPosition={contentPosition}
       fadeTop={fadeTop}
       fadeBottom={fadeBottom}
+      hourOverride={hourOverride}
     />
   );
 }
