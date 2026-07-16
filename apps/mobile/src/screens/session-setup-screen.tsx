@@ -1,5 +1,6 @@
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
+import Animated from "react-native-reanimated";
 
 import { DurationSelector } from "@/components/ui/moss/duration-selector";
 import { CompletionSoundRow, GroupedList } from "@/components/ui/moss/list-row";
@@ -10,6 +11,7 @@ import { Typography } from "@/components/ui/typography";
 import type { SessionDuration } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { impactHaptic } from "@/lib/haptics";
+import { crossfadeIn } from "@/lib/motion";
 import { useMeditation } from "@/providers/meditation-provider";
 
 export function SessionSetupScreen() {
@@ -57,9 +59,11 @@ export function SessionSetupScreen() {
       </StickyFooterScrollView.Body>
       <StickyFooterScrollView.Footer>
         {action.error ? (
-          <Typography variant="small" tone="danger" accessibilityLiveRegion="polite" className="pb-3">
-            Your session couldn’t begin. Please try again.
-          </Typography>
+          <Animated.View entering={crossfadeIn()} className="pb-3">
+            <Typography variant="small" tone="danger" accessibilityLiveRegion="polite">
+              Your session couldn’t begin. Please try again.
+            </Typography>
+          </Animated.View>
         ) : null}
         <MossPrimaryButton isDisabled={action.isPending} onPress={() => void begin()}>
           {action.isPending ? "Starting…" : "Begin"}

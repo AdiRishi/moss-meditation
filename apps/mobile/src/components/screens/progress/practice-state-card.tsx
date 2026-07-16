@@ -1,5 +1,6 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
+import { MossPressable } from "@/components/ui/moss/moss-pressable";
 import { BreathingField } from "@/components/ui/moss/shaders/breathing-field";
 import { Typography } from "@/components/ui/typography";
 import { useMeditation } from "@/providers/meditation-provider";
@@ -16,15 +17,16 @@ type PracticeStateCardProps = {
 
 function StateAction({ label, onPress }: { label: string; onPress(): void }) {
   return (
-    <Pressable
+    <MossPressable
       accessibilityRole="button"
+      feedback="dim"
       className="min-h-11 min-w-24 items-center justify-center rounded-xl px-4"
       onPress={onPress}
     >
       <Typography variant="bodyBold" tone="accent">
         {label}
       </Typography>
-    </Pressable>
+    </MossPressable>
   );
 }
 
@@ -52,15 +54,16 @@ export function PracticeStateCard({
       </View>
       {actionLabel && onAction ? <StateAction label={actionLabel} onPress={onAction} /> : null}
       {secondaryActionLabel && onSecondaryAction ? (
-        <Pressable
+        <MossPressable
           accessibilityRole="button"
+          feedback="dim"
           className="min-h-11 items-center justify-center px-4"
           onPress={onSecondaryAction}
         >
           <Typography variant="small" tone="muted">
             {secondaryActionLabel}
           </Typography>
-        </Pressable>
+        </MossPressable>
       ) : null}
     </View>
   );

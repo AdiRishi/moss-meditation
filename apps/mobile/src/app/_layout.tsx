@@ -41,7 +41,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 function RootNavigator() {
-  const { isReady, reducedMotion } = useMeditation();
+  const { isReady } = useMeditation();
 
   useEffect(() => {
     if (isReady) {
@@ -51,7 +51,9 @@ function RootNavigator() {
 
   return (
     <MeditationDataBoundary>
-      <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? "none" : "fade" }}>
+      {/* A cross-fade is pure opacity — the transition reduced motion keeps.
+          iOS's own Reduce Motion substitutes fades; a hard cut is louder. */}
+      <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
         <Stack.Screen name="meditation" options={{ gestureEnabled: false }} />
         <Stack.Screen name="session-complete" options={{ gestureEnabled: false }} />
       </Stack>

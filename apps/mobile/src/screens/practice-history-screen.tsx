@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { PracticeCalendar } from "@/components/screens/progress/practice-calendar";
 import { PracticeStateCard } from "@/components/screens/progress/practice-state-card";
@@ -10,6 +11,7 @@ import { StandardScrollView } from "@/components/ui/screen-containers/standard-s
 import { Typography } from "@/components/ui/typography";
 import { startOfLocalMonth, toLocalDateKey } from "@/domain/date-time";
 import { completedDateKeys } from "@/domain/progress";
+import { easings } from "@/lib/motion";
 import { useMeditation } from "@/providers/meditation-provider";
 
 function moveMonth(monthStartMs: number, amount: number) {
@@ -48,7 +50,9 @@ export function PracticeHistoryScreen() {
           onAction={() => void refresh()}
         />
       ) : (
-        <>
+        // Keyed remount fades each month's page in; no exiting, so paging
+        // never double-stacks the screen, and 180ms never blocks rapid taps.
+        <Animated.View key={monthKey} entering={FadeIn.duration(180).easing(easings.enter)} className="gap-6">
           <PracticeCalendar
             monthStartMs={monthStartMs}
             completedDates={completedDateKeys(completedSessions)}
@@ -80,7 +84,7 @@ export function PracticeHistoryScreen() {
               />
             )}
           </View>
-        </>
+        </Animated.View>
       )}
     </StandardScrollView>
   );

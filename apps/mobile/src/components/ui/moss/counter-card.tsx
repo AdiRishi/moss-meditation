@@ -1,10 +1,11 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { Typography } from "@/components/ui/typography";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 
 import { MossCard } from "./moss-card";
 import { MossIcon } from "./moss-icon";
+import { MossPressable } from "./moss-pressable";
 
 type CounterCardProps = {
   value: number;
@@ -29,16 +30,18 @@ export function CounterCard({
 
   return (
     <MossCard className="flex-row items-center justify-between px-4 py-4">
-      <Pressable
+      <MossPressable
         accessibilityLabel={`Decrease ${accessibilityLabel}`}
         accessibilityRole="button"
         accessibilityState={{ disabled: cannotDecrease }}
+        feedback="scale"
+        pressedScale={0.94}
         className="size-11 items-center justify-center rounded-full border border-stone"
         disabled={cannotDecrease}
         onPress={() => onChange(Math.max(minimum, value - 1))}
       >
         <MossIcon name="minus" size={18} tintColor={cannotDecrease ? colors.border : colors.foreground} />
-      </Pressable>
+      </MossPressable>
       <View className="items-center gap-0.5">
         <Typography variant="h2" align="center" tone="accent" tabularNums>
           {value}
@@ -47,16 +50,18 @@ export function CounterCard({
           {label}
         </Typography>
       </View>
-      <Pressable
+      <MossPressable
         accessibilityLabel={`Increase ${accessibilityLabel}`}
         accessibilityRole="button"
         accessibilityState={{ disabled: cannotIncrease }}
+        feedback="scale"
+        pressedScale={0.94}
         className="size-11 items-center justify-center rounded-full border border-stone"
         disabled={cannotIncrease}
         onPress={() => onChange(Math.min(maximum, value + 1))}
       >
         <MossIcon name="plus" size={18} tintColor={cannotIncrease ? colors.border : colors.foreground} />
-      </Pressable>
+      </MossPressable>
     </MossCard>
   );
 }

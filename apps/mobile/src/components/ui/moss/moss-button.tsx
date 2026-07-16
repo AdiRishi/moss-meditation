@@ -1,6 +1,7 @@
 import { Button, type ButtonRootProps } from "heroui-native";
 
 import { cn } from "@/lib/cn";
+import { buttonPressAnimation } from "@/lib/motion";
 
 type ScaleHighlightButtonProps = Extract<ButtonRootProps, { feedbackVariant?: "scale-highlight" }>;
 
@@ -13,6 +14,7 @@ export function MossPrimaryButton({ children, className, ...props }: MossButtonP
     <Button
       variant="primary"
       feedbackVariant="scale-highlight"
+      animation={buttonPressAnimation}
       size="lg"
       className={cn("min-h-14 w-full rounded-full py-3", className)}
       accessibilityRole="button"
@@ -28,6 +30,7 @@ export function MossSecondaryButton({ children, className, ...props }: MossButto
     <Button
       variant="outline"
       feedbackVariant="scale-highlight"
+      animation={buttonPressAnimation}
       size="lg"
       className={cn("min-h-14 w-full rounded-full border-border py-3", className)}
       accessibilityRole="button"
@@ -43,6 +46,7 @@ export function MossDangerButton({ children, className, ...props }: MossButtonPr
     <Button
       variant="danger-soft"
       feedbackVariant="scale-highlight"
+      animation={buttonPressAnimation}
       size="lg"
       className={cn("min-h-14 w-full rounded-full py-3", className)}
       accessibilityRole="button"

@@ -1,7 +1,8 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { MossCard } from "@/components/ui/moss/moss-card";
 import { MossIcon } from "@/components/ui/moss/moss-icon";
+import { MossPressable } from "@/components/ui/moss/moss-pressable";
 import { Typography } from "@/components/ui/typography";
 import type { ProgressBucket, ProgressMode } from "@/domain/progress";
 import { useThemeColors } from "@/hooks/use-theme-colors";
@@ -29,10 +30,12 @@ export function ProgressChart({ buckets, mode, onOpenHistory }: ProgressChartPro
   const peakMinutes = Math.max(...buckets.map((bucket) => bucket.minutes), 0);
 
   return (
-    <Pressable
+    <MossPressable
       accessibilityLabel={chartAccessibilityLabel(buckets, mode)}
       accessibilityHint="Opens practice history"
       accessibilityRole="button"
+      feedback="scale"
+      pressedScale={0.98}
       className="rounded-[20px]"
       onPress={onOpenHistory}
     >
@@ -77,6 +80,6 @@ export function ProgressChart({ buckets, mode, onOpenHistory }: ProgressChartPro
           </View>
         </View>
       </MossCard>
-    </Pressable>
+    </MossPressable>
   );
 }

@@ -1,10 +1,12 @@
 import { useKeepAwake } from "expo-keep-awake";
 import { Redirect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, AppState, BackHandler, Pressable, useWindowDimensions, View } from "react-native";
+import { Alert, AppState, BackHandler, useWindowDimensions, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { MossPrimaryButton, MossSecondaryButton } from "@/components/ui/moss/moss-button";
 import { completionSoundIcon, MossIcon } from "@/components/ui/moss/moss-icon";
+import { MossPressable } from "@/components/ui/moss/moss-pressable";
 import { SessionRing } from "@/components/ui/moss/session-ring";
 import { BreathingField } from "@/components/ui/moss/shaders/breathing-field";
 import { StickyFooterScrollView } from "@/components/ui/screen-containers/sticky-footer-scroll-view";
@@ -13,6 +15,8 @@ import { getCompletionSoundLabel } from "@/domain/meditation";
 import { formatRemainingTime, projectSession } from "@/domain/session-timer";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useThemeColors } from "@/hooks/use-theme-colors";
+import { announce } from "@/lib/announce";
+import { crossfadeIn, crossfadeOut, durations, easings } from "@/lib/motion";
 import { useMeditation } from "@/providers/meditation-provider";
 
 export function MeditationScreen() {
@@ -86,6 +90,17 @@ export function MeditationScreen() {
     return () => subscription.remove();
   }, [activeSession, confirmEnd]);
 
+  // The wind-down and the save are conveyed visually (dim, crossfades); give
+  // screen-reader users the same cues once, politely.
+  const phase = projection?.phase;
+  useEffect(() => {
+    if (phase === "ending") {
+      announce("Gently returning. Carry this calm into your day.");
+    } else if (phase === "complete") {
+      announce("Saving your session.");
+    }
+  }, [phase]);
+
   useEffect(() => {
     if (!activeSession || !projection?.isComplete || completionStarted.current || completionError) {
       return;
@@ -144,89 +159,157 @@ export function MeditationScreen() {
             strokeWidth={2.5}
             progress={sessionProgress}
             animated={!reducedMotion}
-            drawDurationMs={900}
+            continuous
+            drawDurationMs={durations.settle}
           >
-            <BreathingField reducedMotion={reducedMotion} ending={isEnding} size={ringSize - 44} />
+            <BreathingField
+              reducedMotion={reducedMotion}
+              ending={isEnding}
+              paused={isPaused}
+              size={ringSize - 44}
+            />
           </SessionRing>
           <View className="items-center gap-1">
             <Typography accessibilityRole="header" variant="timer" align="center" tabularNums selectable>
               {formatRemainingTime(projection.remainingMs)}
             </Typography>
-            {isEnding ? (
-              <View className="items-center gap-1">
-                <Typography variant="reflection" tone="muted" align="center">
-                  Gently returning.
-                </Typography>
-                <Typography variant="small" tone="muted" align="center">
-                  Carry this calm into your day.
-                </Typography>
-              </View>
-            ) : (
-              <Typography tone="muted" align="center">
-                {isPaused ? "Paused" : "Time remaining"}
-              </Typography>
-            )}
+            {/* Fixed-height slot so caption states crossfade in place instead
+                of nudging the timer when the two-line reflection arrives.
+                self-stretch (not w-full): a percentage width collapses to zero
+                inside this content-sized, items-center parent. */}
+            <View className="h-16 self-stretch">
+              {isEnding ? (
+                <Animated.View
+                  key="ending"
+                  entering={FadeIn.duration(600).delay(250).easing(easings.enter)}
+                  exiting={crossfadeOut()}
+                  accessibilityLiveRegion="polite"
+                  className="absolute inset-x-0 top-0 items-center gap-1"
+                >
+                  <Typography variant="reflection" tone="muted" align="center">
+                    Gently returning.
+                  </Typography>
+                  <Typography variant="small" tone="muted" align="center">
+                    Carry this calm into your day.
+                  </Typography>
+                </Animated.View>
+              ) : (
+                <Animated.View
+                  key={isPaused ? "paused" : "counting"}
+                  entering={crossfadeIn()}
+                  exiting={crossfadeOut()}
+                  className="absolute inset-x-0 top-0 items-center"
+                >
+                  <Typography tone="muted" align="center">
+                    {isPaused ? "Paused" : "Time remaining"}
+                  </Typography>
+                </Animated.View>
+              )}
+            </View>
           </View>
         </View>
       </StickyFooterScrollView.Body>
 
       <StickyFooterScrollView.Footer className="gap-6 bg-transparent">
         {!isEnding ? (
-          <View className="flex-row items-center justify-center gap-2">
+          <Animated.View
+            exiting={crossfadeOut()}
+            className="flex-row items-center justify-center gap-2"
+          >
             <MossIcon name={completionSoundIcon(activeSession.completionSound)} size={15} tintColor={colors.muted} />
             <Typography variant="small" tone="muted">
               Ends with {getCompletionSoundLabel(activeSession.completionSound)}
             </Typography>
-          </View>
+          </Animated.View>
         ) : null}
 
         {transitionError || completionError ? (
-          <Typography variant="small" tone="danger" accessibilityLiveRegion="polite" align="center">
-            Your session is safe. Please try that action again.
-          </Typography>
+          <Animated.View entering={crossfadeIn()}>
+            <Typography variant="small" tone="danger" accessibilityLiveRegion="polite" align="center">
+              Your session is safe. Please try that action again.
+            </Typography>
+          </Animated.View>
         ) : null}
 
-        {completionError ? (
-          <View className="gap-3">
-            <MossPrimaryButton onPress={() => setCompletionError(false)}>Try again</MossPrimaryButton>
-            <MossSecondaryButton onPress={confirmEnd}>End session</MossSecondaryButton>
-          </View>
-        ) : projection.isComplete ? (
-          <Typography variant="small" tone="muted" align="center" accessibilityLiveRegion="polite">
-            Saving your session…
-          </Typography>
-        ) : isPaused ? (
-          <View className="gap-3">
-            <MossPrimaryButton
-              isDisabled={transitionPending}
-              onPress={() =>
-                void runTransition(async () => {
-                  await resumeSession();
-                })
-              }
+        {/* A fixed-height stage sized to the tallest state (two stacked
+            buttons), so controls crossfade in place and nothing below the
+            ring ever jumps mid-session. */}
+        <View className="h-[124px] justify-end">
+          {completionError ? (
+            <Animated.View
+              key="completion-error"
+              entering={crossfadeIn()}
+              exiting={crossfadeOut()}
+              className="absolute inset-x-0 bottom-0 gap-3"
             >
-              {transitionPending ? "Resuming…" : "Resume"}
-            </MossPrimaryButton>
-            <MossSecondaryButton onPress={confirmEnd}>End session</MossSecondaryButton>
-          </View>
-        ) : isEnding ? (
-          <MossSecondaryButton onPress={confirmEnd}>End session</MossSecondaryButton>
-        ) : (
-          <Pressable
-            accessibilityLabel="Pause session"
-            accessibilityRole="button"
-            accessibilityState={{ disabled: transitionPending }}
-            className="mx-auto size-16 items-center justify-center rounded-full border border-border bg-surface"
-            disabled={transitionPending}
-            onPress={() =>
-              void runTransition(async () => {
-                await pauseSession();
-              })
-            }
-          >
-            <MossIcon name="pause" size={22} tintColor={colors.foreground} />
-          </Pressable>
-        )}
+              <MossPrimaryButton onPress={() => setCompletionError(false)}>Try again</MossPrimaryButton>
+              <MossSecondaryButton onPress={confirmEnd}>End session</MossSecondaryButton>
+            </Animated.View>
+          ) : projection.isComplete ? (
+            <Animated.View
+              key="saving"
+              entering={crossfadeIn()}
+              exiting={crossfadeOut()}
+              className="absolute inset-x-0 bottom-0 min-h-14 justify-center"
+            >
+              <Typography variant="small" tone="muted" align="center" accessibilityLiveRegion="polite">
+                Saving your session…
+              </Typography>
+            </Animated.View>
+          ) : isPaused ? (
+            <Animated.View
+              key="paused"
+              entering={crossfadeIn()}
+              exiting={crossfadeOut()}
+              className="absolute inset-x-0 bottom-0 gap-3"
+            >
+              <MossPrimaryButton
+                isDisabled={transitionPending}
+                onPress={() =>
+                  void runTransition(async () => {
+                    await resumeSession();
+                  })
+                }
+              >
+                {transitionPending ? "Resuming…" : "Resume"}
+              </MossPrimaryButton>
+              <MossSecondaryButton onPress={confirmEnd}>End session</MossSecondaryButton>
+            </Animated.View>
+          ) : isEnding ? (
+            <Animated.View
+              key="ending"
+              entering={crossfadeIn()}
+              exiting={crossfadeOut()}
+              className="absolute inset-x-0 bottom-0"
+            >
+              <MossSecondaryButton onPress={confirmEnd}>End session</MossSecondaryButton>
+            </Animated.View>
+          ) : (
+            <Animated.View
+              key="sitting"
+              entering={crossfadeIn()}
+              exiting={crossfadeOut()}
+              className="absolute inset-x-0 bottom-0 items-center"
+            >
+              <MossPressable
+                accessibilityLabel="Pause session"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: transitionPending }}
+                feedback="scale"
+                pressedScale={0.96}
+                className="size-16 items-center justify-center rounded-full border border-border bg-surface"
+                disabled={transitionPending}
+                onPress={() =>
+                  void runTransition(async () => {
+                    await pauseSession();
+                  })
+                }
+              >
+                <MossIcon name="pause" size={22} tintColor={colors.foreground} />
+              </MossPressable>
+            </Animated.View>
+          )}
+        </View>
       </StickyFooterScrollView.Footer>
     </StickyFooterScrollView.Root>
   );

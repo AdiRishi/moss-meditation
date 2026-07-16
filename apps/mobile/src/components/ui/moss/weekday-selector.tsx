@@ -1,10 +1,14 @@
-import { Pressable, View } from "react-native";
+import { useEffect } from "react";
+import { View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import type { Weekday } from "@/domain/meditation";
 import { useThemeColors } from "@/hooks/use-theme-colors";
+import { easings } from "@/lib/motion";
 
 import { Typography } from "../typography";
 import { MossIcon } from "./moss-icon";
+import { MossPressable } from "./moss-pressable";
 import { SessionRing } from "./session-ring";
 
 const WEEKDAYS: readonly { day: Weekday; label: string; accessibilityLabel: string }[] = [
@@ -23,6 +27,59 @@ type WeekdaySelectorProps = {
   completed?: Set<Weekday>;
   compact?: boolean;
 };
+
+function WeekdayChip({
+  label,
+  accessibilityLabel,
+  isSelected,
+  sizeClass,
+  onToggle,
+}: {
+  label: string;
+  accessibilityLabel: string;
+  isSelected: boolean;
+  sizeClass: string;
+  onToggle: () => void;
+}) {
+  const selected = useSharedValue(isSelected ? 1 : 0);
+
+  useEffect(() => {
+    // These get tapped rapid-fire; withTiming retargets cleanly mid-change.
+    selected.set(withTiming(isSelected ? 1 : 0, { duration: 160, easing: easings.move }));
+  }, [isSelected, selected]);
+
+  const fillStyle = useAnimatedStyle(() => ({ opacity: selected.get() }));
+  const baseTextStyle = useAnimatedStyle(() => ({ opacity: 1 - selected.get() }));
+
+  return (
+    <MossPressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: isSelected }}
+      feedback="scale"
+      pressedScale={0.94}
+      className={`${sizeClass} items-center justify-center rounded-full border border-stone bg-transparent`}
+      hitSlop={4}
+      onPress={onToggle}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={fillStyle}
+        className="absolute inset-0 rounded-full border border-accent bg-accent"
+      />
+      <Animated.View style={baseTextStyle}>
+        <Typography variant="smallBold" className="text-foreground">
+          {label}
+        </Typography>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={fillStyle} className="absolute inset-0 items-center justify-center">
+        <Typography variant="smallBold" className="text-accent-foreground">
+          {label}
+        </Typography>
+      </Animated.View>
+    </MossPressable>
+  );
+}
 
 export function WeekdaySelector({ selected, onChange, completed = new Set(), compact = false }: WeekdaySelectorProps) {
   const colors = useThemeColors();
@@ -80,26 +137,16 @@ export function WeekdaySelector({ selected, onChange, completed = new Set(), com
 
   return (
     <View className="flex-row justify-between gap-0.5">
-      {WEEKDAYS.map(({ day, label, accessibilityLabel }) => {
-        const isSelected = selectedSet.has(day);
-        return (
-          <Pressable
-            key={day}
-            accessibilityLabel={accessibilityLabel}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: isSelected }}
-            className={`${sizeClass} items-center justify-center rounded-full border ${
-              isSelected ? "border-accent bg-accent" : "border-stone bg-transparent"
-            }`}
-            hitSlop={4}
-            onPress={() => toggle(day)}
-          >
-            <Typography variant="smallBold" className={isSelected ? "text-accent-foreground" : "text-foreground"}>
-              {label}
-            </Typography>
-          </Pressable>
-        );
-      })}
+      {WEEKDAYS.map(({ day, label, accessibilityLabel }) => (
+        <WeekdayChip
+          key={day}
+          label={label}
+          accessibilityLabel={accessibilityLabel}
+          isSelected={selectedSet.has(day)}
+          sizeClass={sizeClass}
+          onToggle={() => toggle(day)}
+        />
+      ))}
     </View>
   );
 }

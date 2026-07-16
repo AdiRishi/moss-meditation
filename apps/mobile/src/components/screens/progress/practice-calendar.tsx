@@ -1,6 +1,7 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { MossIcon } from "@/components/ui/moss/moss-icon";
+import { MossPressable } from "@/components/ui/moss/moss-pressable";
 import { Typography } from "@/components/ui/typography";
 import { toLocalDateKey } from "@/domain/date-time";
 import { useThemeColors } from "@/hooks/use-theme-colors";
@@ -65,27 +66,29 @@ export function PracticeCalendar({
   return (
     <View className="gap-3">
       <View className="flex-row items-center justify-between">
-        <Pressable
+        <MossPressable
           accessibilityLabel="Show previous month"
           accessibilityRole="button"
+          feedback="dim"
           className="size-11 items-center justify-center rounded-full"
           hitSlop={4}
           onPress={onPreviousMonth}
         >
           <MossIcon name="back" size={18} tintColor={colors.foreground} />
-        </Pressable>
+        </MossPressable>
         <Typography accessibilityRole="header" accessibilityLiveRegion="polite" variant="h3" tabularNums>
           {MONTH_FORMATTER.format(month)}
         </Typography>
-        <Pressable
+        <MossPressable
           accessibilityLabel="Show next month"
           accessibilityRole="button"
+          feedback="dim"
           className="size-11 items-center justify-center rounded-full"
           hitSlop={4}
           onPress={onNextMonth}
         >
           <MossIcon name="forward" size={18} tintColor={colors.foreground} />
-        </Pressable>
+        </MossPressable>
       </View>
 
       <View className="flex-row">

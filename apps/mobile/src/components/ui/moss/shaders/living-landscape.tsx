@@ -1,6 +1,6 @@
 import { Canvas, Fill, Shader, Skia } from "@shopify/react-native-skia";
 import { useIsFocused } from "expo-router/react-navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useUniwind } from "uniwind";
@@ -22,7 +22,6 @@ const LANDSCAPE_SKSL = `
 uniform float2 uResolution;
 uniform float  uTime;
 uniform float  uHorizon;
-uniform float  uMotion;
 uniform float3 uSkyTop;
 uniform float3 uSkyHorizon;
 uniform float3 uGlow;
@@ -95,7 +94,7 @@ float ridgeHeight(float x, float fi) {
 half4 main(float2 fragCoord) {
   float2 uv = fragCoord / uResolution;
   float aspect = uResolution.x / uResolution.y;
-  float t = uTime * uMotion;
+  float t = uTime;
 
   // The light breathes on a ~9s cycle — felt, not seen.
   float breath = 0.5 + 0.5 * sin(t * 0.7);
@@ -572,10 +571,11 @@ export function LivingLandscape({
 
   const hour = useFractionalHour(hourOverride);
   const isDark = theme === "dark";
-  const scene = sceneAtHour(isDark ? DARK_KEYFRAMES : LIGHT_KEYFRAMES, hour);
+  // Referentially stable between meaningful changes so the uniforms mapper
+  // below is not torn down on every unrelated re-render.
+  const scene = useMemo(() => sceneAtHour(isDark ? DARK_KEYFRAMES : LIGHT_KEYFRAMES, hour), [isDark, hour]);
   const skyTop = isDark ? DARK_SKY_TOP : LIGHT_SKY_TOP;
   const horizon = contentPosition === "bottom" ? 0.52 : 0.6;
-  const motion = reducedMotion ? 0 : 1;
   const fadeTopFraction = Math.min(0.45, fadeTop / height);
   const fadeBottomFraction = Math.min(0.45, fadeBottom / height);
 
@@ -587,7 +587,6 @@ export function LivingLandscape({
       ],
       uTime: time.value,
       uHorizon: horizon,
-      uMotion: motion,
       uSkyTop: skyTop,
       uSkyHorizon: scene.skyHorizon,
       uGlow: scene.glow,
@@ -603,7 +602,7 @@ export function LivingLandscape({
       uFadeTop: fadeTopFraction,
       uFadeBottom: fadeBottomFraction,
     };
-  }, [width, measuredHeight, time, horizon, motion, skyTop, scene, fadeTopFraction, fadeBottomFraction]);
+  }, [width, measuredHeight, time, horizon, skyTop, scene, fadeTopFraction, fadeBottomFraction]);
 
   const canvasStyle = useAnimatedStyle(() => ({
     position: "absolute" as const,

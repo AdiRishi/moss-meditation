@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
 import { MossPrimaryButton } from "@/components/ui/moss/moss-button";
 import { ScreenHeader } from "@/components/ui/moss/screen-header";
@@ -7,6 +8,8 @@ import { StandardScrollView } from "@/components/ui/screen-containers/standard-s
 import { StickyFooterScrollView } from "@/components/ui/screen-containers/sticky-footer-scroll-view";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/cn";
+import { crossfadeIn, crossfadeOut, glide } from "@/lib/motion";
+import { useMeditation } from "@/providers/meditation-provider";
 
 type SettingsScreenLayoutProps = {
   title: string;
@@ -62,6 +65,8 @@ export function SettingsFormLayout({
   saveLabel = "Save",
   feedback,
 }: SettingsFormLayoutProps) {
+  const { reducedMotion } = useMeditation();
+
   return (
     <StickyFooterScrollView.Root>
       <StickyFooterScrollView.FormBody className="flex-1" contentContainerClassName="gap-8 pb-8">
@@ -69,14 +74,20 @@ export function SettingsFormLayout({
         {children}
       </StickyFooterScrollView.FormBody>
       <StickyFooterScrollView.Footer className="border-t border-border">
-        {feedback ? <View className="pb-3">{feedback}</View> : null}
-        <MossPrimaryButton
-          accessibilityState={{ busy: isSaving, disabled: isSaving || saveDisabled }}
-          isDisabled={isSaving || saveDisabled}
-          onPress={onSave}
-        >
-          {isSaving ? "Saving…" : saveLabel}
-        </MossPrimaryButton>
+        {feedback ? (
+          <Animated.View entering={crossfadeIn()} exiting={crossfadeOut()} className="pb-3">
+            {feedback}
+          </Animated.View>
+        ) : null}
+        <Animated.View layout={glide(reducedMotion)}>
+          <MossPrimaryButton
+            accessibilityState={{ busy: isSaving, disabled: isSaving || saveDisabled }}
+            isDisabled={isSaving || saveDisabled}
+            onPress={onSave}
+          >
+            {isSaving ? "Saving…" : saveLabel}
+          </MossPrimaryButton>
+        </Animated.View>
       </StickyFooterScrollView.Footer>
     </StickyFooterScrollView.Root>
   );

@@ -1,6 +1,6 @@
 import { Separator } from "heroui-native";
 import { Children, isValidElement } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { formatPracticeTime } from "@/domain/date-time";
 import type { CompletionSound, PracticeTime } from "@/domain/meditation";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { Typography } from "../typography";
 import { MossCard } from "./moss-card";
 import { completionSoundIcon, MossIcon, type MossIconName } from "./moss-icon";
+import { MossPressable } from "./moss-pressable";
 
 type MossListRowProps = {
   icon: MossIconName;
@@ -42,10 +43,11 @@ export function MossListRow({
   const colors = useThemeColors();
 
   return (
-    <Pressable
+    <MossPressable
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={[label, detail, value].filter(Boolean).join(", ")}
       accessibilityHint={accessibilityHint}
+      feedback="highlight"
       className={cn("min-h-16 flex-row items-center gap-4 px-5 py-3", className)}
       disabled={!onPress}
       onPress={onPress}
@@ -68,7 +70,7 @@ export function MossListRow({
       </View>
       {trailing}
       {showChevron ? <MossIcon name="forward" size={16} tintColor={colors.muted} /> : null}
-    </Pressable>
+    </MossPressable>
   );
 }
 

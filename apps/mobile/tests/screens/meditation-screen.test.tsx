@@ -14,7 +14,10 @@ jest.mock("expo-router", () => ({
   Redirect: (props: { href: unknown }) => mockRedirect(props),
   useRouter: () => ({ replace: mockReplace }),
 }));
-jest.mock("@/providers/meditation-provider", () => ({ useMeditation: jest.fn() }));
+jest.mock("@/providers/meditation-provider", () => ({
+  useMeditation: jest.fn(),
+  useReducedMotionPreference: () => false,
+}));
 
 const mockedUseMeditation = jest.mocked(useMeditation);
 const STARTED_AT_MS = new Date(2026, 6, 13, 7, 0).getTime();

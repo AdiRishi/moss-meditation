@@ -416,3 +416,24 @@ export function useMeditation() {
   }
   return context;
 }
+
+/**
+ * The reduced-motion flag for UI primitives that may render outside the
+ * provider (design-system components, tests). Falls back to the system
+ * setting when no provider is present.
+ */
+export function useReducedMotionPreference() {
+  const context = use(MeditationContext);
+  const [systemReducedMotion, setSystemReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (context) {
+      return;
+    }
+    void AccessibilityInfo.isReduceMotionEnabled().then(setSystemReducedMotion);
+    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", setSystemReducedMotion);
+    return () => subscription.remove();
+  }, [context]);
+
+  return context ? context.reducedMotion : systemReducedMotion;
+}

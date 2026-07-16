@@ -1,9 +1,11 @@
 import { useRouter } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { MossPrimaryButton } from "@/components/ui/moss/moss-button";
 import { MossCard } from "@/components/ui/moss/moss-card";
 import { completionSoundIcon, MossIcon } from "@/components/ui/moss/moss-icon";
+import { MossPressable } from "@/components/ui/moss/moss-pressable";
 import { ScreenHeader } from "@/components/ui/moss/screen-header";
 import { StickyFooterScrollView } from "@/components/ui/screen-containers/sticky-footer-scroll-view";
 import { Typography } from "@/components/ui/typography";
@@ -11,6 +13,7 @@ import { COMPLETION_SOUNDS, type CompletionSound } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useCompletionSounds } from "@/hooks/use-completion-sounds";
 import { useThemeColors } from "@/hooks/use-theme-colors";
+import { crossfadeIn, easings } from "@/lib/motion";
 import { useMeditation } from "@/providers/meditation-provider";
 
 export function CompletionSoundScreen() {
@@ -48,10 +51,11 @@ export function CompletionSoundScreen() {
             const isPlaying = playingSound === sound.id;
             return (
               <MossCard key={sound.id} className="min-h-20 flex-row items-center px-4 py-3">
-                <Pressable
+                <MossPressable
                   accessibilityRole="radio"
                   accessibilityState={{ checked: isSelected, disabled: action.isPending }}
                   accessibilityLabel={sound.label}
+                  feedback="highlight"
                   className="min-h-14 flex-1 flex-row items-center gap-4"
                   disabled={action.isPending}
                   onPress={() => void select(sound.id)}
@@ -61,21 +65,28 @@ export function CompletionSoundScreen() {
                   </View>
                   <Typography className="flex-1">{sound.label}</Typography>
                   {isSelected ? (
-                    <View className="size-8 items-center justify-center rounded-full bg-accent">
-                      <MossIcon name="check" size={16} tintColor={colors.accentForeground} />
-                    </View>
+                    <Animated.View
+                      entering={FadeIn.duration(150).easing(easings.enter)}
+                      exiting={FadeOut.duration(120).easing(easings.exit)}
+                    >
+                      <View className="size-8 items-center justify-center rounded-full bg-accent">
+                        <MossIcon name="check" size={16} tintColor={colors.accentForeground} />
+                      </View>
+                    </Animated.View>
                   ) : null}
-                </Pressable>
-                <Pressable
+                </MossPressable>
+                <MossPressable
                   accessibilityLabel={`${isPlaying ? "Stop" : "Preview"} ${sound.label}`}
                   accessibilityRole="button"
                   accessibilityState={{ disabled: action.isPending }}
+                  feedback="scale"
+                  pressedScale={0.94}
                   className="ml-3 size-11 items-center justify-center rounded-full border border-stone"
                   disabled={action.isPending}
                   onPress={() => void action.run(() => (isPlaying ? stop() : play(sound.id)))}
                 >
                   <MossIcon name={isPlaying ? "pause" : "play"} size={16} tintColor={colors.foreground} />
-                </Pressable>
+                </MossPressable>
               </MossCard>
             );
           })}
@@ -83,16 +94,11 @@ export function CompletionSoundScreen() {
       </StickyFooterScrollView.Body>
       <StickyFooterScrollView.Footer>
         {action.error ? (
-          <Typography
-            variant="small"
-            tone="danger"
-            accessibilityLiveRegion="polite"
-            align="center"
-            selectable
-            className="pb-3"
-          >
-            That action couldn’t be completed. Please try again.
-          </Typography>
+          <Animated.View entering={crossfadeIn()} className="pb-3">
+            <Typography variant="small" tone="danger" accessibilityLiveRegion="polite" align="center" selectable>
+              That action couldn’t be completed. Please try again.
+            </Typography>
+          </Animated.View>
         ) : null}
         <MossPrimaryButton isDisabled={action.isPending} onPress={() => void done()}>
           {action.isPending ? "Working…" : "Done"}

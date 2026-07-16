@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { useThemeColors } from "@/hooks/use-theme-colors";
 
 import { Typography } from "../typography";
 import { MossIcon } from "./moss-icon";
+import { MossPressable } from "./moss-pressable";
 
 type ScreenHeaderProps = {
   title?: string;
@@ -19,15 +20,16 @@ export function ScreenHeader({ title, onBack, backLabel = "Back", trailing }: Sc
 
   return (
     <View className="min-h-14 flex-row items-center justify-between py-1">
-      <Pressable
+      <MossPressable
         accessibilityLabel={backLabel}
         accessibilityRole="button"
+        feedback="dim"
         className="size-11 items-start justify-center"
         hitSlop={8}
         onPress={onBack ?? router.back}
       >
         <MossIcon name="back" size={20} tintColor={colors.foreground} />
-      </Pressable>
+      </MossPressable>
       {title ? (
         <Typography accessibilityRole="header" variant="h4" align="center" className="flex-1 font-serif font-normal">
           {title}

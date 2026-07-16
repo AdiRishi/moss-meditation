@@ -1,6 +1,9 @@
 import { View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { Typography } from "@/components/ui/typography";
+import { easings } from "@/lib/motion";
+import { useMeditation } from "@/providers/meditation-provider";
 
 const TOTAL_SETUP_STEPS = 3;
 
@@ -9,6 +12,7 @@ type OnboardingProgressProps = {
 };
 
 export function OnboardingProgress({ step }: OnboardingProgressProps) {
+  const { reducedMotion } = useMeditation();
   const stepLabel = `Step ${step} of ${TOTAL_SETUP_STEPS}`;
 
   return (
@@ -24,7 +28,19 @@ export function OnboardingProgress({ step }: OnboardingProgressProps) {
       </Typography>
       <View className="flex-row gap-2">
         {Array.from({ length: TOTAL_SETUP_STEPS }, (_, index) => (
-          <View key={index} className={`h-1 flex-1 rounded-full ${index < step ? "bg-accent" : "bg-separator"}`} />
+          <View key={index} className="h-1 flex-1 overflow-hidden rounded-full bg-separator">
+            {index < step ? (
+              <Animated.View
+                // The newest fill softly arrives once the push transition settles; earlier fills are static.
+                entering={
+                  index === step - 1 && !reducedMotion
+                    ? FadeIn.duration(400).delay(350).easing(easings.enter)
+                    : undefined
+                }
+                className="h-full w-full rounded-full bg-accent"
+              />
+            ) : null}
+          </View>
         ))}
       </View>
     </View>
