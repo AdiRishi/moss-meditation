@@ -19,6 +19,10 @@ export function SessionSetupScreen() {
   const { activeSession, notificationPermission, pendingCompletion, preferences, startSession } = useMeditation();
   const [duration, setDuration] = useState<SessionDuration>(preferences.lastDurationMinutes);
   const action = useAsyncAction();
+  const backgroundCompletionSoundAvailable =
+    preferences.backgroundCompletionAlertsEnabled &&
+    notificationPermission.status === "granted" &&
+    notificationPermission.allowsSound;
 
   if (pendingCompletion) {
     return <Redirect href={{ pathname: "/session-complete", params: { id: pendingCompletion.id } }} />;
@@ -51,11 +55,15 @@ export function SessionSetupScreen() {
             onPress={() => router.push({ pathname: "/completion-sound", params: { source: "session-setup" } })}
           />
         </GroupedList>
-        {notificationPermission === "granted" && process.env.EXPO_OS !== "android" ? null : (
+        {!backgroundCompletionSoundAvailable ? (
           <Typography variant="small" tone="muted">
-            Keep Moss open for precise timing and to hear the completion sound.
+            Keep Moss open to hear the completion sound, or enable it in Notification settings.
           </Typography>
-        )}
+        ) : process.env.EXPO_OS === "android" ? (
+          <Typography variant="small" tone="muted">
+            Keep Moss open for the most precise completion timing on this device.
+          </Typography>
+        ) : null}
       </StickyFooterScrollView.Body>
       <StickyFooterScrollView.Footer>
         {action.error ? (

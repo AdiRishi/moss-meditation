@@ -3,7 +3,7 @@ import type { MossIconName } from "@/components/ui/moss/moss-icon";
 
 export const SETTINGS_ROUTES = [
   { label: "Schedule", icon: "calendar", href: "/schedule" },
-  { label: "Reminders", icon: "bell", href: "/reminders" },
+  { label: "Notifications", icon: "bell", href: "/reminders" },
   { label: "Completion sound", icon: "sound", href: "/completion-sound?source=settings" },
   { label: "Appearance", icon: "palette", href: "/appearance" },
   { label: "Reduced motion", icon: "motion", href: "/appearance" },

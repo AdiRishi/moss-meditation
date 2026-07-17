@@ -105,6 +105,22 @@ describe("SQLiteMeditationStore", () => {
     await expect(store.loadPreferences()).resolves.toEqual(DEFAULT_PREFERENCES);
   });
 
+  it("enables background completion alerts for preferences saved before the choice existed", async () => {
+    const database = new NodeSQLiteTestDatabase();
+    await initializeDatabase(database.asExpoDatabase());
+    const legacyPreferences = Object.fromEntries(
+      Object.entries(DEFAULT_PREFERENCES).filter(([key]) => key !== "backgroundCompletionAlertsEnabled"),
+    );
+    await database.runAsync(
+      "UPDATE preferences SET value = ? WHERE singleton_id = 1",
+      JSON.stringify(legacyPreferences),
+    );
+
+    const store = new SQLiteMeditationStore(database.asExpoDatabase());
+
+    await expect(store.loadPreferences()).resolves.toEqual(DEFAULT_PREFERENCES);
+  });
+
   it("does not restore an active session when pausing races automatic completion", async () => {
     const database = new NodeSQLiteTestDatabase();
     await initializeDatabase(database.asExpoDatabase());

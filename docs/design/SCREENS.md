@@ -22,9 +22,9 @@ Let people choose a flexible cadence by days per week and sessions per chosen da
 
 Offer optional morning and evening practice times. Each time can be enabled, edited, or skipped.
 
-### 05 — Reminders
+### 05 — Notifications
 
-Explain that reminders are gentle and optional before requesting notification permission. The actions are **Allow reminders** and **Not now**.
+Explain that one device permission supports two independent choices: background session-completion sounds and optional practice reminders. Keep completion alerts on as the recommended default, leave reminders as an explicit choice, and request device permission once when the person continues.
 
 ## Today
 
@@ -70,13 +70,13 @@ Provide a month calendar and chronological session list. Completed days are visi
 
 Edit the weekly cadence and planned practice times in one place.
 
-### 15 — Reminder settings
+### 15 — Notification settings
 
-Enable or disable reminders, edit lead time, set quiet hours, and preview the notification language.
+Enable or disable background completion alerts and practice reminders independently. Show device-permission or sound limitations clearly, then provide reminder lead time, quiet hours, and a notification preview.
 
 ### 16 — Settings overview
 
-Provide access to Schedule, Reminders, Completion sound, Appearance, Reduced motion, Privacy, and About. Keep account features out of the initial product.
+Provide access to Schedule, Notifications, Completion sound, Appearance, Reduced motion, Privacy, and About. Keep account features out of the initial product.
 
 ## System States
 

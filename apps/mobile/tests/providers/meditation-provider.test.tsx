@@ -4,9 +4,19 @@ import type { ReactNode } from "react";
 
 import { DEFAULT_PREFERENCES, type ActiveSession } from "@/domain/meditation";
 import { MeditationProvider, useMeditation, type Clock } from "@/providers/meditation-provider";
-import type { LocalNotifications } from "@/services/local-notifications";
+import type {
+  LocalNotificationPermission,
+  LocalNotifications,
+  NotificationPermissionRequest,
+} from "@/services/local-notifications";
 
 const STARTED_AT_MS = new Date(2026, 6, 13, 7, 0).getTime();
+const GRANTED_PERMISSION: LocalNotificationPermission = {
+  status: "granted",
+  canAskAgain: false,
+  allowsAlert: true,
+  allowsSound: true,
+};
 
 function createClock(nowMs: number): Clock {
   return { now: () => nowMs };
@@ -14,10 +24,10 @@ function createClock(nowMs: number): Clock {
 
 function createNotifications(): jest.Mocked<LocalNotifications> {
   return {
-    getPermissionStatus: jest.fn(async () => "granted"),
-    requestPermission: jest.fn(async () => "granted"),
+    getPermission: jest.fn(async () => GRANTED_PERMISSION),
+    requestPermission: jest.fn(async (_request: NotificationPermissionRequest) => GRANTED_PERMISSION),
     rescheduleWeeklyReminders: jest.fn(async (_preferences) => ({
-      permissionStatus: "granted" as const,
+      permission: GRANTED_PERMISSION,
       scheduledCount: 0,
     })),
     syncSessionCompletion: jest.fn(async (_notification) => true),
@@ -107,18 +117,58 @@ describe("MeditationProvider", () => {
     await expect(store.loadActiveSession()).resolves.toBeNull();
   });
 
+  it("keeps background completion alerts independent from practice reminders", async () => {
+    const preferences = {
+      ...DEFAULT_PREFERENCES,
+      backgroundCompletionAlertsEnabled: false,
+      remindersEnabled: true,
+    };
+    const store = new InMemoryMeditationStore({ preferences });
+    const notifications = createNotifications();
+    const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
+    const { result } = renderHook(useMeditation, { wrapper });
+
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    notifications.syncSessionCompletion.mockClear();
+
+    await act(async () => {
+      await result.current.startSession(5);
+    });
+    expect(notifications.syncSessionCompletion).toHaveBeenLastCalledWith(null);
+
+    await act(async () => {
+      await result.current.saveNotificationPreferences({
+        ...result.current.preferences,
+        backgroundCompletionAlertsEnabled: true,
+        remindersEnabled: false,
+      });
+    });
+    expect(notifications.syncSessionCompletion).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        scheduledAtMs: STARTED_AT_MS + 5 * 60_000,
+        sound: "soft-chime",
+      }),
+    );
+    expect(notifications.rescheduleWeeklyReminders).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        backgroundCompletionAlertsEnabled: true,
+        remindersEnabled: false,
+      }),
+    );
+  });
+
   it("does not let an older refresh overwrite a newer session transition", async () => {
     const store = new InMemoryMeditationStore();
     const notifications = createNotifications();
-    let resolvePermission: ((permission: "granted") => void) | undefined;
-    notifications.getPermissionStatus
+    let resolvePermission: ((permission: LocalNotificationPermission) => void) | undefined;
+    notifications.getPermission
       .mockImplementationOnce(
         () =>
           new Promise((resolve) => {
             resolvePermission = resolve;
           }),
       )
-      .mockResolvedValue("granted");
+      .mockResolvedValue(GRANTED_PERMISSION);
     const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
     const { result } = renderHook(useMeditation, { wrapper });
 
@@ -127,7 +177,7 @@ describe("MeditationProvider", () => {
     });
     expect(result.current.activeSession).toMatchObject({ status: "running" });
 
-    await act(async () => resolvePermission?.("granted"));
+    await act(async () => resolvePermission?.(GRANTED_PERMISSION));
     await waitFor(() => expect(result.current.isReady).toBe(true));
     expect(result.current.activeSession).toMatchObject({ status: "running" });
     await expect(store.loadActiveSession()).resolves.toMatchObject({ status: "running" });
@@ -145,9 +195,9 @@ describe("MeditationProvider", () => {
 
     const store = new ObservableSessionStore();
     const notifications = createNotifications();
-    let resolvePermission: ((permission: "granted") => void) | undefined;
+    let resolvePermission: ((permission: LocalNotificationPermission) => void) | undefined;
     let resolveSync: (() => void) | undefined;
-    notifications.getPermissionStatus.mockImplementationOnce(
+    notifications.getPermission.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
           resolvePermission = resolve;
@@ -166,7 +216,7 @@ describe("MeditationProvider", () => {
     expect(result.current.isReady).toBe(false);
 
     await act(async () => {
-      resolvePermission?.("granted");
+      resolvePermission?.(GRANTED_PERMISSION);
       resolveSync?.();
     });
     await waitFor(() => expect(result.current.isReady).toBe(true));
@@ -199,7 +249,7 @@ describe("MeditationProvider", () => {
     const notifications = createNotifications();
     notifications.rescheduleWeeklyReminders
       .mockRejectedValueOnce(new Error("Scheduling unavailable"))
-      .mockResolvedValue({ permissionStatus: "granted", scheduledCount: 0 });
+      .mockResolvedValue({ permission: GRANTED_PERMISSION, scheduledCount: 0 });
     const wrapper = createWrapper({ store, clock: createClock(STARTED_AT_MS), notifications });
     const { result } = renderHook(useMeditation, { wrapper });
 

@@ -1,8 +1,8 @@
 import { act, waitFor } from "@testing-library/react-native";
-import { renderWithSafeArea } from "@tests/testing-utils/render-meditation-screen";
+import { notificationPermission, renderWithSafeArea } from "@tests/testing-utils/render-meditation-screen";
 import { AppState } from "react-native";
 
-import type { ActiveSession, CompletedSession } from "@/domain/meditation";
+import { DEFAULT_PREFERENCES, type ActiveSession, type CompletedSession } from "@/domain/meditation";
 import { useMeditation } from "@/providers/meditation-provider";
 import { MeditationScreen } from "@/screens/meditation-screen";
 
@@ -55,9 +55,10 @@ function meditationValue(overrides: Partial<ReturnType<typeof useMeditation>> = 
     abandonSession: jest.fn(),
     activeSession: activeSession(),
     completeSession: jest.fn(async () => null),
-    notificationPermission: "denied",
+    notificationPermission: notificationPermission("denied"),
     pauseSession: jest.fn(),
     pendingCompletion: null,
+    preferences: DEFAULT_PREFERENCES,
     reducedMotion: true,
     resumeSession: jest.fn(),
     ...overrides,
@@ -114,14 +115,14 @@ describe("MeditationScreen completion navigation", () => {
   });
 
   it("does not duplicate a completion signal that may have played in the background", () => {
-    mockedUseMeditation.mockReturnValue(meditationValue({ notificationPermission: "granted" }));
+    mockedUseMeditation.mockReturnValue(meditationValue({ notificationPermission: notificationPermission("granted") }));
     const screen = renderWithSafeArea(<MeditationScreen />);
     act(() => appStateListener?.("background"));
 
     mockedUseMeditation.mockReturnValue(
       meditationValue({
         activeSession: null,
-        notificationPermission: "granted",
+        notificationPermission: notificationPermission("granted"),
         pendingCompletion: completedSession(),
       }),
     );

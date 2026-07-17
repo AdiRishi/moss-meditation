@@ -31,6 +31,7 @@ export function MeditationScreen() {
     notificationPermission,
     pauseSession,
     pendingCompletion,
+    preferences,
     reducedMotion,
     resumeSession,
   } = useMeditation();
@@ -61,7 +62,11 @@ export function MeditationScreen() {
   }, [activeSession]);
 
   const projection = activeSession ? projectSession(activeSession, nowMs) : null;
-  const shouldPlayCompletionSound = notificationPermission !== "granted" || !mayHaveCompletedInBackground;
+  const backgroundCompletionSoundAvailable =
+    preferences.backgroundCompletionAlertsEnabled &&
+    notificationPermission.status === "granted" &&
+    notificationPermission.allowsSound;
+  const shouldPlayCompletionSound = !backgroundCompletionSoundAvailable || !mayHaveCompletedInBackground;
 
   const confirmEnd = useCallback(() => {
     Alert.alert("End this session?", "An early ending will not be added to your progress.", [

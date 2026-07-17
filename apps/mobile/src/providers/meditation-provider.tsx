@@ -17,8 +17,10 @@ import {
 } from "@/domain/meditation";
 import { projectSession } from "@/domain/session-timer";
 import {
+  DENIED_NOTIFICATION_PERMISSION,
+  UNDETERMINED_NOTIFICATION_PERMISSION,
   localNotifications,
-  type LocalNotificationPermissionStatus,
+  type LocalNotificationPermission,
   type LocalNotifications,
 } from "@/services/local-notifications";
 
@@ -38,7 +40,7 @@ type MeditationState = {
   completedSessions: CompletedSession[];
   pendingCompletion: CompletedSession | null;
   reducedMotion: boolean;
-  notificationPermission: LocalNotificationPermissionStatus;
+  notificationPermission: LocalNotificationPermission;
 };
 
 type ProviderState = Omit<MeditationState, "reducedMotion">;
@@ -53,17 +55,18 @@ type MeditationContextValue = MeditationState & {
   abandonSession(): Promise<void>;
   setSessionFeeling(id: string, feeling: Feeling | null): Promise<void>;
   acknowledgeSession(id: string): Promise<void>;
-  saveReminderPreferences(
+  saveNotificationPreferences(
     preferences: AppPreferences,
     options?: { requestPermission?: boolean },
-  ): Promise<ReminderPreferencesSaveResult>;
+  ): Promise<NotificationPreferencesSaveResult>;
   resetAllData(): Promise<void>;
 };
 
-export type ReminderPreferencesSaveResult = {
+export type NotificationPreferencesSaveResult = {
   preferences: AppPreferences;
+  permission: LocalNotificationPermission;
   scheduledCount: number;
-  status: "disabled" | "no-scheduled-times" | "permission-denied" | "scheduled" | "sync-failed";
+  status: "disabled" | "no-scheduled-times" | "permission-denied" | "saved" | "sound-disabled" | "sync-failed";
 };
 
 const MeditationContext = createContext<MeditationContextValue | null>(null);
@@ -86,8 +89,8 @@ function completedSessionState(completedSessions: CompletedSession[]) {
   };
 }
 
-function sessionCompletionNotification(session: ActiveSession | null, nowMs: number) {
-  if (!session || session.status !== "running") {
+function sessionCompletionNotification(session: ActiveSession | null, enabled: boolean, nowMs: number) {
+  if (!enabled || !session || session.status !== "running") {
     return null;
   }
 
@@ -101,10 +104,13 @@ function sessionCompletionNotification(session: ActiveSession | null, nowMs: num
 async function syncCompletionNotificationBestEffort(
   notifications: LocalNotifications | undefined,
   session: ActiveSession | null,
+  enabled: boolean,
   nowMs: number,
 ) {
   if (notifications) {
-    await notifications.syncSessionCompletion(sessionCompletionNotification(session, nowMs)).catch(() => undefined);
+    await notifications
+      .syncSessionCompletion(sessionCompletionNotification(session, enabled, nowMs))
+      .catch(() => undefined);
   }
 }
 
@@ -123,8 +129,13 @@ async function loadMeditationSnapshot(
 
   const [completedSessions, notificationPermission] = await Promise.all([
     store.listCompletedSessions(),
-    notifications ? notifications.getPermissionStatus().catch(() => null) : Promise.resolve(null),
-    syncCompletionNotificationBestEffort(notifications, activeSession, clock.now()),
+    notifications ? notifications.getPermission().catch(() => null) : Promise.resolve(null),
+    syncCompletionNotificationBestEffort(
+      notifications,
+      activeSession,
+      preferences.backgroundCompletionAlertsEnabled,
+      clock.now(),
+    ),
   ]);
 
   return { activeSession, completedSessions, notificationPermission, preferences };
@@ -140,7 +151,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     activeSession: null,
     completedSessions: [],
     pendingCompletion: null,
-    notificationPermission: "undetermined",
+    notificationPermission: UNDETERMINED_NOTIFICATION_PERMISSION,
   });
 
   const invalidatePendingRefresh = useCallback(() => {
@@ -156,8 +167,8 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
   );
 
   const syncCompletionNotification = useCallback(
-    async (session: ActiveSession | null, nowMs = clock.now()) => {
-      await syncCompletionNotificationBestEffort(notifications, session, nowMs);
+    async (session: ActiveSession | null, enabled: boolean, nowMs = clock.now()) => {
+      await syncCompletionNotificationBestEffort(notifications, session, enabled, nowMs);
     },
     [clock, notifications],
   );
@@ -233,68 +244,67 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     [commitState, store],
   );
 
-  const saveReminderPreferences = useCallback(
+  const saveNotificationPreferences = useCallback(
     async (
       preferences: AppPreferences,
       { requestPermission = false }: { requestPermission?: boolean } = {},
-    ): Promise<ReminderPreferencesSaveResult> => {
-      const remindersRequested = preferences.remindersEnabled;
+    ): Promise<NotificationPreferencesSaveResult> => {
+      const notificationsRequested = preferences.backgroundCompletionAlertsEnabled || preferences.remindersEnabled;
       let permission = state.notificationPermission;
-      if (remindersRequested && permission !== "granted" && requestPermission) {
-        permission = notifications ? await notifications.requestPermission() : "denied";
+      if (notificationsRequested && permission.status !== "granted" && permission.canAskAgain && requestPermission) {
+        permission = notifications
+          ? await notifications.requestPermission({
+              completionSound: preferences.backgroundCompletionAlertsEnabled ? preferences.completionSound : undefined,
+              reminders: preferences.remindersEnabled,
+            })
+          : DENIED_NOTIFICATION_PERMISSION;
       }
 
-      let effectivePreferences =
-        remindersRequested && permission === "denied" ? { ...preferences, remindersEnabled: false } : preferences;
-      await store.savePreferences(effectivePreferences);
+      await store.savePreferences(preferences);
 
       let schedulingResult;
       try {
         schedulingResult = notifications
-          ? await notifications.rescheduleWeeklyReminders(effectivePreferences)
-          : { permissionStatus: "denied" as const, scheduledCount: 0 };
+          ? await notifications.rescheduleWeeklyReminders(preferences)
+          : { permission: DENIED_NOTIFICATION_PERMISSION, scheduledCount: 0 };
+        permission = schedulingResult.permission;
+        await notifications?.syncSessionCompletion(
+          sessionCompletionNotification(
+            state.activeSession,
+            preferences.backgroundCompletionAlertsEnabled,
+            clock.now(),
+          ),
+        );
       } catch {
         commitState({
-          preferences: effectivePreferences,
+          preferences,
           notificationPermission: permission,
         });
-        return { preferences: effectivePreferences, scheduledCount: 0, status: "sync-failed" };
-      }
-
-      permission = schedulingResult.permissionStatus;
-      if (effectivePreferences.remindersEnabled && permission !== "granted") {
-        effectivePreferences = { ...effectivePreferences, remindersEnabled: false };
-        await store.savePreferences(effectivePreferences);
-        try {
-          await notifications?.rescheduleWeeklyReminders(effectivePreferences);
-        } catch {
-          commitState({
-            preferences: effectivePreferences,
-            notificationPermission: permission,
-          });
-          return { preferences: effectivePreferences, scheduledCount: 0, status: "sync-failed" };
-        }
+        return { preferences, permission, scheduledCount: 0, status: "sync-failed" };
       }
 
       commitState({
-        preferences: effectivePreferences,
+        preferences,
         notificationPermission: permission,
       });
 
-      const status = !effectivePreferences.remindersEnabled
-        ? remindersRequested
+      const status = !notificationsRequested
+        ? "disabled"
+        : permission.status !== "granted"
           ? "permission-denied"
-          : "disabled"
-        : schedulingResult.scheduledCount === 0
-          ? "no-scheduled-times"
-          : "scheduled";
+          : preferences.backgroundCompletionAlertsEnabled && !permission.allowsSound
+            ? "sound-disabled"
+            : preferences.remindersEnabled && schedulingResult.scheduledCount === 0
+              ? "no-scheduled-times"
+              : "saved";
       return {
-        preferences: effectivePreferences,
+        preferences,
+        permission,
         scheduledCount: schedulingResult.scheduledCount,
         status,
       };
     },
-    [commitState, notifications, state.notificationPermission, store],
+    [clock, commitState, notifications, state.activeSession, state.notificationPermission, store],
   );
 
   const startSession = useCallback(
@@ -314,7 +324,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
         preferences,
       });
       commitState({ preferences, activeSession: session });
-      await syncCompletionNotification(session, nowMs);
+      await syncCompletionNotification(session, preferences.backgroundCompletionAlertsEnabled, nowMs);
       return session;
     },
     [clock, commitState, state.preferences, store, syncCompletionNotification],
@@ -323,7 +333,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
   const pauseActiveSession = useCallback(async () => {
     const session = await store.pauseActiveSession(clock.now());
     commitState({ activeSession: session });
-    await syncCompletionNotification(null);
+    await syncCompletionNotification(null, false);
     return session;
   }, [clock, commitState, store, syncCompletionNotification]);
 
@@ -331,14 +341,14 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     const nowMs = clock.now();
     const session = await store.resumeActiveSession(nowMs);
     commitState({ activeSession: session });
-    await syncCompletionNotification(session, nowMs);
+    await syncCompletionNotification(session, state.preferences.backgroundCompletionAlertsEnabled, nowMs);
     return session;
-  }, [clock, commitState, store, syncCompletionNotification]);
+  }, [clock, commitState, state.preferences.backgroundCompletionAlertsEnabled, store, syncCompletionNotification]);
 
   const completeActiveSession = useCallback(async () => {
     const activeSessionId = state.activeSession?.id;
     const completed = await store.completeActiveSession(clock.now());
-    await syncCompletionNotification(null);
+    await syncCompletionNotification(null, false);
     const completedSessions = await store.listCompletedSessions();
     commitState({
       activeSession: null,
@@ -349,7 +359,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
 
   const abandonActiveSession = useCallback(async () => {
     await store.abandonActiveSession();
-    await syncCompletionNotification(null);
+    await syncCompletionNotification(null, false);
     commitState({ activeSession: null });
   }, [commitState, store, syncCompletionNotification]);
 
@@ -392,7 +402,7 @@ export function MeditationProvider({ children, store, clock = systemClock, notif
     abandonSession: abandonActiveSession,
     setSessionFeeling,
     acknowledgeSession,
-    saveReminderPreferences,
+    saveNotificationPreferences,
     resetAllData,
   };
 

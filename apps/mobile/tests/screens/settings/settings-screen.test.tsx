@@ -25,7 +25,7 @@ describe("<SettingsScreen />", () => {
 
     expect(getAllByRole("button").map((row) => row.props.accessibilityLabel)).toEqual([
       "Schedule",
-      "Reminders",
+      "Notifications",
       "Completion sound",
       "Appearance",
       "Reduced motion",
@@ -34,7 +34,7 @@ describe("<SettingsScreen />", () => {
     ]);
 
     fireEvent.press(getByLabelText("Schedule"));
-    fireEvent.press(getByLabelText("Reminders"));
+    fireEvent.press(getByLabelText("Notifications"));
     fireEvent.press(getByLabelText("Completion sound"));
     fireEvent.press(getByLabelText("Appearance"));
     fireEvent.press(getByLabelText("Reduced motion"));

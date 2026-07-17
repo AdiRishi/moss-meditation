@@ -15,7 +15,7 @@ import {
 
 jest.mock("expo-notifications", () => ({
   AndroidImportance: { DEFAULT: 5 },
-  IosAuthorizationStatus: { PROVISIONAL: 3, EPHEMERAL: 4 },
+  IosAuthorizationStatus: { NOT_DETERMINED: 0, DENIED: 1, AUTHORIZED: 2, PROVISIONAL: 3, EPHEMERAL: 4 },
   SchedulableTriggerInputTypes: { WEEKLY: "weekly", DATE: "date" },
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
@@ -29,7 +29,11 @@ type ScheduledNotification = Awaited<
   ReturnType<LocalNotificationsNativeApi["getAllScheduledNotificationsAsync"]>
 >[number];
 
-function permission(status: "granted" | "denied" | "undetermined", iosStatus?: number): NotificationPermissionsStatus {
+function permission(
+  status: "granted" | "denied" | "undetermined",
+  iosStatus?: number,
+  iosOverrides: Partial<NonNullable<NotificationPermissionsStatus["ios"]>> = {},
+): NotificationPermissionsStatus {
   return {
     status: status as NotificationPermissionsStatus["status"],
     granted: status === "granted",
@@ -40,10 +44,27 @@ function permission(status: "granted" | "denied" | "undetermined", iosStatus?: n
       : {
           ios: {
             status: iosStatus,
+            allowsAlert: status === "granted",
+            allowsSound: status === "granted",
+            ...iosOverrides,
           } as NotificationPermissionsStatus["ios"],
         }),
   };
 }
+
+const GRANTED_PERMISSION = {
+  status: "granted",
+  canAskAgain: false,
+  allowsAlert: true,
+  allowsSound: true,
+} as const;
+
+const DENIED_PERMISSION = {
+  status: "denied",
+  canAskAgain: false,
+  allowsAlert: false,
+  allowsSound: false,
+} as const;
 
 class FakeNotificationsApi implements LocalNotificationsNativeApi {
   permission: NotificationPermissionsStatus;
@@ -133,25 +154,65 @@ describe("LocalNotifications", () => {
     const nativeApi = new FakeNotificationsApi(permission("undetermined"));
     const notifications = createLocalNotifications(nativeApi);
 
-    await expect(notifications.getPermissionStatus()).resolves.toBe("undetermined");
+    await expect(notifications.getPermission()).resolves.toEqual({
+      status: "undetermined",
+      canAskAgain: true,
+      allowsAlert: false,
+      allowsSound: false,
+    });
 
     nativeApi.permission = permission("denied");
-    await expect(notifications.getPermissionStatus()).resolves.toBe("denied");
+    await expect(notifications.getPermission()).resolves.toEqual(DENIED_PERMISSION);
 
     nativeApi.permission = permission("denied", 3);
-    await expect(notifications.getPermissionStatus()).resolves.toBe("granted");
+    await expect(notifications.getPermission()).resolves.toEqual({
+      status: "granted",
+      canAskAgain: false,
+      allowsAlert: false,
+      allowsSound: false,
+    });
   });
 
-  it("requests only the alert and sound access used by Moss reminders", async () => {
+  it("reports when iOS authorization remains granted but notification sounds are disabled", async () => {
+    const nativeApi = new FakeNotificationsApi(permission("granted", 2, { allowsSound: false }));
+
+    await expect(createLocalNotifications(nativeApi).getPermission()).resolves.toEqual({
+      ...GRANTED_PERMISSION,
+      allowsSound: false,
+    });
+  });
+
+  it("creates only the selected notification channels before requesting alert and sound access", async () => {
     const nativeApi = new FakeNotificationsApi(permission("undetermined"));
     nativeApi.requestedPermission = permission("denied");
     const notifications = createLocalNotifications(nativeApi);
 
-    await expect(notifications.requestPermission()).resolves.toBe("denied");
+    await expect(notifications.requestPermission({ completionSound: "soft-chime", reminders: true })).resolves.toEqual(
+      DENIED_PERMISSION,
+    );
     expect(nativeApi.permissionRequest).toEqual({
       ios: { allowAlert: true, allowBadge: false, allowSound: true },
       android: {},
     });
+    expect(nativeApi.channels).toEqual([
+      {
+        id: "moss-practice-reminders",
+        input: {
+          name: "Practice reminders",
+          importance: 5,
+          sound: "default",
+        },
+      },
+      {
+        id: "moss-session-completion.soft-chime",
+        input: {
+          name: "Session completion",
+          importance: 5,
+          sound: "soft_chime.wav",
+          enableVibrate: false,
+        },
+      },
+    ]);
   });
 
   it("replaces Moss reminders with deterministic weekly triggers outside quiet hours", async () => {
@@ -203,7 +264,7 @@ describe("LocalNotifications", () => {
       }),
     );
 
-    expect(result).toEqual({ permissionStatus: "granted", scheduledCount: 2 });
+    expect(result).toEqual({ permission: GRANTED_PERMISSION, scheduledCount: 2 });
     expect(nativeApi.cancelled).toEqual(["old-a", "old-z"]);
     expect(nativeApi.requests).toEqual([
       {
@@ -257,7 +318,7 @@ describe("LocalNotifications", () => {
     const notifications = createLocalNotifications(nativeApi);
 
     await expect(notifications.rescheduleWeeklyReminders(preferences({ remindersEnabled: true }))).resolves.toEqual({
-      permissionStatus: "denied",
+      permission: DENIED_PERMISSION,
       scheduledCount: 0,
     });
     expect(nativeApi.cancelled).toEqual(["old-reminder"]);
@@ -274,7 +335,7 @@ describe("LocalNotifications", () => {
     const notifications = createLocalNotifications(nativeApi);
 
     await expect(notifications.rescheduleWeeklyReminders(preferences({ remindersEnabled: false }))).resolves.toEqual({
-      permissionStatus: "granted",
+      permission: GRANTED_PERMISSION,
       scheduledCount: 0,
     });
     expect(nativeApi.cancelled).toEqual(["old-reminder"]);

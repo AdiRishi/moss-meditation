@@ -32,6 +32,7 @@ export const appPreferencesSchema = z.object({
   selectedWeekdays: z.array(weekdaySchema).min(1),
   sessionsPerDay: z.number().int().min(1).max(3),
   practiceTimes: z.array(practiceTimeSchema).max(MAX_PRACTICE_TIMES),
+  backgroundCompletionAlertsEnabled: z.boolean().default(true),
   remindersEnabled: z.boolean(),
   quietHours: z.object({
     startMinute: z.number().int().min(0).max(1439),
@@ -116,6 +117,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
       reminderLeadMinutes: 0,
     },
   ],
+  backgroundCompletionAlertsEnabled: true,
   remindersEnabled: false,
   quietHours: {
     startMinute: 21 * 60,

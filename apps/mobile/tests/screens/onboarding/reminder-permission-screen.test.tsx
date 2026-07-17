@@ -1,5 +1,9 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
-import { createNotifications, renderMeditationScreen } from "@tests/testing-utils/render-meditation-screen";
+import {
+  createNotifications,
+  notificationPermission,
+  renderMeditationScreen,
+} from "@tests/testing-utils/render-meditation-screen";
 
 import { ReminderPermissionScreen } from "@/screens/onboarding/reminder-permission-screen";
 
@@ -14,50 +18,67 @@ describe("ReminderPermissionScreen", () => {
     mockReplace.mockClear();
   });
 
-  it("finishes onboarding without reminders when native scheduling is unavailable", async () => {
+  it("finishes onboarding without requesting permission when both notification choices are off", async () => {
     const notifications = createNotifications("denied");
     notifications.rescheduleWeeklyReminders.mockRejectedValue(new Error("Notifications unavailable"));
-    const { getByText, store } = renderMeditationScreen(<ReminderPermissionScreen />, { notifications });
+    const { getByLabelText, getByText, store } = renderMeditationScreen(<ReminderPermissionScreen />, {
+      notifications,
+    });
 
-    fireEvent.press(getByText("Not now"));
+    fireEvent(getByLabelText("Session completion"), "valueChange", false);
+    fireEvent.press(getByText("Continue"));
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/(tabs)/today"));
     await expect(store.loadPreferences()).resolves.toMatchObject({
       onboardingCompleted: true,
       onboardingStep: "complete",
+      backgroundCompletionAlertsEnabled: false,
       remindersEnabled: false,
     });
     expect(notifications.requestPermission).not.toHaveBeenCalled();
   });
 
-  it("turns reminders back off when scheduling observes denied permission", async () => {
+  it("preserves both notification choices when the system permission is denied", async () => {
     const notifications = createNotifications("undetermined");
+    const deniedPermission = notificationPermission("denied");
+    notifications.requestPermission.mockResolvedValue(deniedPermission);
     notifications.rescheduleWeeklyReminders.mockResolvedValue({
-      permissionStatus: "denied",
+      permission: deniedPermission,
       scheduledCount: 0,
     });
-    const { getByText, store } = renderMeditationScreen(<ReminderPermissionScreen />, { notifications });
+    const { getByLabelText, getByText, store } = renderMeditationScreen(<ReminderPermissionScreen />, {
+      notifications,
+    });
 
-    fireEvent.press(getByText("Allow reminders"));
+    fireEvent(getByLabelText("Practice reminders"), "valueChange", true);
+    fireEvent.press(getByText("Continue"));
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/(tabs)/today"));
     await expect(store.loadPreferences()).resolves.toMatchObject({
       onboardingCompleted: true,
-      remindersEnabled: false,
+      backgroundCompletionAlertsEnabled: true,
+      remindersEnabled: true,
     });
-    expect(notifications.requestPermission).toHaveBeenCalledTimes(1);
+    expect(notifications.requestPermission).toHaveBeenCalledWith({
+      completionSound: "soft-chime",
+      reminders: true,
+    });
   });
 
-  it("preserves granted reminder intent when native scheduling needs a retry", async () => {
+  it("preserves notification intent when native scheduling needs a retry", async () => {
     const notifications = createNotifications("undetermined");
     notifications.rescheduleWeeklyReminders.mockRejectedValueOnce(new Error("Scheduling unavailable"));
-    const { getByText, store } = renderMeditationScreen(<ReminderPermissionScreen />, { notifications });
+    const { getByLabelText, getByText, store } = renderMeditationScreen(<ReminderPermissionScreen />, {
+      notifications,
+    });
 
-    fireEvent.press(getByText("Allow reminders"));
+    fireEvent(getByLabelText("Practice reminders"), "valueChange", true);
+    fireEvent.press(getByText("Continue"));
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/(tabs)/today"));
     await expect(store.loadPreferences()).resolves.toMatchObject({
       onboardingCompleted: true,
+      backgroundCompletionAlertsEnabled: true,
       remindersEnabled: true,
     });
   });

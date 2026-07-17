@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 
 import { GroupedList } from "@/components/ui/moss/list-row";
 import { MossCard } from "@/components/ui/moss/moss-card";
-import { MossIcon, type MossIconName } from "@/components/ui/moss/moss-icon";
+import { MossIcon } from "@/components/ui/moss/moss-icon";
 import { MossPressable } from "@/components/ui/moss/moss-pressable";
 import { Typography } from "@/components/ui/typography";
 import { dateForPracticeTime, formatPracticeTime } from "@/domain/date-time";
@@ -382,51 +382,6 @@ export function QuietHoursControl({
         ))}
       </GroupedList>
     </FadeToDisabled>
-  );
-}
-
-export function SettingsToggleCard({
-  icon,
-  label,
-  value,
-  enabled,
-  disabled,
-  onChange,
-}: {
-  icon: MossIconName;
-  label: string;
-  value?: string;
-  enabled: boolean;
-  disabled?: boolean;
-  onChange: (enabled: boolean) => void;
-}) {
-  const colors = useThemeColors();
-
-  return (
-    <MossCard>
-      <View className="min-h-16 flex-row items-center gap-4 px-4 py-3">
-        <View className="w-8 items-center justify-center">
-          <MossIcon name={icon} size={22} tintColor={colors.muted} />
-        </View>
-        <View className="flex-1 gap-0.5">
-          <Typography variant="body">{label}</Typography>
-          {value ? (
-            <Typography variant="small" tone="muted">
-              {value}
-            </Typography>
-          ) : null}
-        </View>
-        <Switch
-          accessibilityLabel={label}
-          accessibilityState={{ checked: enabled, disabled }}
-          disabled={disabled}
-          ios_backgroundColor={colors.border}
-          onValueChange={onChange}
-          trackColor={{ false: colors.border, true: colors.accent }}
-          value={enabled}
-        />
-      </View>
-    </MossCard>
   );
 }
 

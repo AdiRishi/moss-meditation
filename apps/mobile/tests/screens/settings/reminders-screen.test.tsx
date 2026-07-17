@@ -2,7 +2,11 @@
 
 import { fireEvent, waitFor } from "@testing-library/react-native";
 import { InMemoryMeditationStore } from "@tests/testing-utils/in-memory-meditation-store";
-import { createNotifications, renderMeditationScreen } from "@tests/testing-utils/render-meditation-screen";
+import {
+  createNotifications,
+  notificationPermission,
+  renderMeditationScreen,
+} from "@tests/testing-utils/render-meditation-screen";
 
 import { DEFAULT_PREFERENCES } from "@/domain/meditation";
 import { RemindersScreen } from "@/screens/reminders-screen";
@@ -28,7 +32,7 @@ describe("<RemindersScreen />", () => {
     });
 
     await findByText("Reminder timing");
-    fireEvent(getByLabelText("Reminders"), "valueChange", true);
+    fireEvent(getByLabelText("Practice reminders"), "valueChange", true);
     fireEvent.press(getByLabelText("Evening, 15 min before"));
     fireEvent(
       getByTestId("reminders.quiet-hours.start"),
@@ -51,7 +55,7 @@ describe("<RemindersScreen />", () => {
     );
   });
 
-  it("keeps denied permission calm and preserves the person’s reminder choices", async () => {
+  it("keeps denied permission calm and preserves the person’s notification choices", async () => {
     const notifications = createNotifications("denied");
     const preferences = { ...DEFAULT_PREFERENCES, remindersEnabled: true };
     const { findByText, getByText, store } = renderMeditationScreen(<RemindersScreen />, {
@@ -59,19 +63,20 @@ describe("<RemindersScreen />", () => {
       store: new InMemoryMeditationStore({ preferences }),
     });
 
-    await findByText("Notifications are off in device settings. Moss will stay quiet until you choose to allow them.");
+    await findByText("Notifications are off in device settings. Moss will keep your choices until you allow them.");
     fireEvent.press(getByText("Save"));
 
-    await findByText(
-      "Reminders remain off. Your timing choices are saved, and you can allow notifications in device settings whenever you want.",
-    );
+    await findByText("Your choices are saved. Allow notifications in device settings when you want Moss to use them.");
     expect(notifications.requestPermission).not.toHaveBeenCalled();
-    await expect(store.loadPreferences()).resolves.toMatchObject({ remindersEnabled: false });
+    await expect(store.loadPreferences()).resolves.toMatchObject({
+      backgroundCompletionAlertsEnabled: true,
+      remindersEnabled: true,
+    });
   });
 
   it("does not treat a permission read failure as a denial", async () => {
     const notifications = createNotifications("granted");
-    notifications.getPermissionStatus.mockRejectedValue(new Error("Permissions unavailable"));
+    notifications.getPermission.mockRejectedValue(new Error("Permissions unavailable"));
     const preferences = { ...DEFAULT_PREFERENCES, remindersEnabled: true };
     const { findByText, getByText, store } = renderMeditationScreen(<RemindersScreen />, {
       notifications,
@@ -93,10 +98,20 @@ describe("<RemindersScreen />", () => {
 
     await findByText("Reminder timing");
     notifications.rescheduleWeeklyReminders.mockRejectedValueOnce(new Error("Scheduling unavailable"));
-    fireEvent(getByLabelText("Reminders"), "valueChange", true);
+    fireEvent(getByLabelText("Practice reminders"), "valueChange", true);
     fireEvent.press(getByText("Save"));
 
-    await findByText("Your choices are saved, but reminders couldn’t be updated. Please try again.");
+    await findByText("Your choices are saved, but notifications couldn’t be updated. Please try again.");
     await expect(store.loadPreferences()).resolves.toMatchObject({ remindersEnabled: true });
+  });
+
+  it("explains when iOS authorization is granted without notification sounds", async () => {
+    const notifications = createNotifications(notificationPermission("granted", { allowsSound: false }));
+    const { findByText, getByText } = renderMeditationScreen(<RemindersScreen />, { notifications });
+
+    await findByText("Notification sounds are off in device settings, so background session endings will be silent.");
+    fireEvent.press(getByText("Save"));
+
+    await findByText("Your choices are saved. Turn on notification sounds in device settings to hear session endings.");
   });
 });

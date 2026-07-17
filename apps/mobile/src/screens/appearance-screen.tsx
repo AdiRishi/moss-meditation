@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { AppearanceChoiceList, SettingsToggleCard } from "@/components/screens/settings/settings-controls";
+import { AppearanceChoiceList } from "@/components/screens/settings/settings-controls";
 import {
   SettingsFeedback,
   SettingsLoading,
@@ -8,6 +8,7 @@ import {
   SettingsSection,
   type SettingsFeedbackState,
 } from "@/components/screens/settings/settings-layout";
+import { MossToggleCard } from "@/components/ui/moss/toggle-card";
 import type { AppPreferences } from "@/domain/meditation";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useMeditation } from "@/providers/meditation-provider";
@@ -51,7 +52,7 @@ export function AppearanceScreen() {
         title="Motion"
         description="Respects system settings. Moss replaces movement with quieter fades."
       >
-        <SettingsToggleCard
+        <MossToggleCard
           disabled={saveAction.isPending}
           enabled={preferences.reducedMotion}
           icon="motion"

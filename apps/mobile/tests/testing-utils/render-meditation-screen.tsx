@@ -6,8 +6,10 @@ import { type Metrics, SafeAreaProvider } from "react-native-safe-area-context";
 import type { MeditationStore } from "@/data/meditation-store";
 import { MeditationProvider } from "@/providers/meditation-provider";
 import type {
+  LocalNotificationPermission,
   LocalNotificationPermissionStatus,
   LocalNotifications,
+  NotificationPermissionRequest,
   SessionCompletionNotification,
 } from "@/services/local-notifications";
 
@@ -36,17 +38,34 @@ export function renderMeditationScreen(
   return { ...result, store };
 }
 
-export function createNotifications(initialPermission: LocalNotificationPermissionStatus = "granted") {
-  let permission = initialPermission;
+export function notificationPermission(
+  status: LocalNotificationPermissionStatus,
+  overrides: Partial<LocalNotificationPermission> = {},
+): LocalNotificationPermission {
+  const granted = status === "granted";
+  return {
+    status,
+    canAskAgain: status === "undetermined",
+    allowsAlert: granted,
+    allowsSound: granted,
+    ...overrides,
+  };
+}
+
+export function createNotifications(
+  initialPermission: LocalNotificationPermissionStatus | LocalNotificationPermission = "granted",
+) {
+  let permission =
+    typeof initialPermission === "string" ? notificationPermission(initialPermission) : initialPermission;
   const notifications: jest.Mocked<LocalNotifications> = {
-    getPermissionStatus: jest.fn(async () => permission),
-    requestPermission: jest.fn(async () => {
-      permission = "granted";
+    getPermission: jest.fn(async () => permission),
+    requestPermission: jest.fn(async (_request: NotificationPermissionRequest) => {
+      permission = notificationPermission("granted");
       return permission;
     }),
     rescheduleWeeklyReminders: jest.fn(async (preferences) => ({
-      permissionStatus: permission,
-      scheduledCount: permission === "granted" && preferences.remindersEnabled ? 1 : 0,
+      permission,
+      scheduledCount: permission.status === "granted" && preferences.remindersEnabled ? 1 : 0,
     })),
     syncSessionCompletion: jest.fn(async (_notification: SessionCompletionNotification | null) => true),
     clearAllManagedNotifications: jest.fn(async () => undefined),

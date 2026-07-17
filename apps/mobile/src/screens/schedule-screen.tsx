@@ -26,7 +26,7 @@ export function ScheduleScreen() {
 }
 
 function ScheduleEditor() {
-  const { error, preferences, saveReminderPreferences } = useMeditation();
+  const { error, preferences, saveNotificationPreferences } = useMeditation();
   const [draft, setDraft] = useState<AppPreferences>(preferences);
   const saveAction = useAsyncAction();
   const [feedback, setFeedback] = useState<SettingsFeedbackState>(null);
@@ -34,7 +34,7 @@ function ScheduleEditor() {
   const save = async () => {
     await saveAction.run(async () => {
       setFeedback(null);
-      const result = await saveReminderPreferences(draft);
+      const result = await saveNotificationPreferences(draft);
       setDraft(result.preferences);
       if (result.status === "sync-failed") {
         setFeedback({

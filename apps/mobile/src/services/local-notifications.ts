@@ -30,8 +30,29 @@ export function getMossNotificationKind(data: Record<string, unknown> | null | u
 
 export type LocalNotificationPermissionStatus = "granted" | "denied" | "undetermined";
 
+export type LocalNotificationPermission = {
+  status: LocalNotificationPermissionStatus;
+  canAskAgain: boolean;
+  allowsAlert: boolean;
+  allowsSound: boolean;
+};
+
+export const UNDETERMINED_NOTIFICATION_PERMISSION: LocalNotificationPermission = {
+  status: "undetermined",
+  canAskAgain: true,
+  allowsAlert: false,
+  allowsSound: false,
+};
+
+export const DENIED_NOTIFICATION_PERMISSION: LocalNotificationPermission = {
+  status: "denied",
+  canAskAgain: false,
+  allowsAlert: false,
+  allowsSound: false,
+};
+
 export type ReminderSchedulingResult = {
-  permissionStatus: LocalNotificationPermissionStatus;
+  permission: LocalNotificationPermission;
   scheduledCount: number;
 };
 
@@ -41,9 +62,14 @@ export type SessionCompletionNotification = {
   sound: CompletionSound;
 };
 
+export type NotificationPermissionRequest = {
+  completionSound?: CompletionSound;
+  reminders: boolean;
+};
+
 export interface LocalNotifications {
-  getPermissionStatus(): Promise<LocalNotificationPermissionStatus>;
-  requestPermission(): Promise<LocalNotificationPermissionStatus>;
+  getPermission(): Promise<LocalNotificationPermission>;
+  requestPermission(request: NotificationPermissionRequest): Promise<LocalNotificationPermission>;
   rescheduleWeeklyReminders(preferences: AppPreferences): Promise<ReminderSchedulingResult>;
   syncSessionCompletion(notification: SessionCompletionNotification | null): Promise<boolean>;
   clearAllManagedNotifications(): Promise<void>;
@@ -74,19 +100,25 @@ type ReminderPlan = {
   minute: number;
 };
 
-function permissionStatusFromNative(
-  status: Notifications.NotificationPermissionsStatus,
-): LocalNotificationPermissionStatus {
+function permissionFromNative(status: Notifications.NotificationPermissionsStatus): LocalNotificationPermission {
   const iosStatus = status.ios?.status;
-  const hasNonInterruptingPermission =
+  const hasIosAuthorization =
+    iosStatus === Notifications.IosAuthorizationStatus.AUTHORIZED ||
     iosStatus === Notifications.IosAuthorizationStatus.PROVISIONAL ||
     iosStatus === Notifications.IosAuthorizationStatus.EPHEMERAL;
+  const authorized = status.granted || hasIosAuthorization;
+  const permissionStatus: LocalNotificationPermissionStatus = authorized
+    ? "granted"
+    : status.status === "undetermined"
+      ? "undetermined"
+      : "denied";
 
-  if (status.granted || hasNonInterruptingPermission) {
-    return "granted";
-  }
-
-  return status.status === "undetermined" ? "undetermined" : "denied";
+  return {
+    status: permissionStatus,
+    canAskAgain: status.canAskAgain,
+    allowsAlert: authorized && (status.ios ? (status.ios.allowsAlert ?? status.granted) : true),
+    allowsSound: authorized && (status.ios ? (status.ios.allowsSound ?? status.granted) : true),
+  };
 }
 
 function isMinuteInsideQuietHours(minute: number, preferences: AppPreferences) {
@@ -166,8 +198,8 @@ function matchesSessionCompletion(notification: ScheduledNotificationSummary, de
 export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi): LocalNotifications {
   const mutationQueue = new SerialTaskQueue();
 
-  async function getPermissionStatus() {
-    return permissionStatusFromNative(await nativeApi.getPermissionsAsync());
+  async function getPermission() {
+    return permissionFromNative(await nativeApi.getPermissionsAsync());
   }
 
   async function ensureReminderChannel() {
@@ -175,6 +207,15 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
       name: "Practice reminders",
       importance: Notifications.AndroidImportance.DEFAULT,
       sound: "default",
+    });
+  }
+
+  async function ensureSessionCompletionChannel(sound: CompletionSound) {
+    await nativeApi.setNotificationChannelAsync(sessionCompletionChannelId(sound), {
+      name: "Session completion",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: COMPLETION_SOUND_FILENAMES[sound],
+      enableVibrate: false,
     });
   }
 
@@ -198,18 +239,13 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
     if (!Number.isFinite(scheduledAtMs)) {
       throw new Error("A finite completion time is required to schedule a notification.");
     }
-    if ((await getPermissionStatus()) !== "granted") {
+    if ((await getPermission()).status !== "granted") {
       return false;
     }
 
     const filename = COMPLETION_SOUND_FILENAMES[sound];
     const channelId = sessionCompletionChannelId(sound);
-    await nativeApi.setNotificationChannelAsync(channelId, {
-      name: "Session completion",
-      importance: Notifications.AndroidImportance.DEFAULT,
-      sound: filename,
-      enableVibrate: false,
-    });
+    await ensureSessionCompletionChannel(sound);
     await nativeApi.scheduleNotificationAsync({
       identifier: sessionCompletionIdentifier(sessionId),
       content: {
@@ -234,10 +270,13 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
   }
 
   return {
-    getPermissionStatus,
+    getPermission,
 
-    async requestPermission() {
-      await ensureReminderChannel();
+    async requestPermission({ completionSound, reminders }) {
+      await Promise.all([
+        reminders ? ensureReminderChannel() : Promise.resolve(),
+        completionSound ? ensureSessionCompletionChannel(completionSound) : Promise.resolve(),
+      ]);
       const status = await nativeApi.requestPermissionsAsync({
         ios: {
           allowAlert: true,
@@ -246,18 +285,18 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
         },
         android: {},
       });
-      return permissionStatusFromNative(status);
+      return permissionFromNative(status);
     },
 
     async rescheduleWeeklyReminders(preferences) {
       return mutationQueue.run(async () => {
-        const permissionStatus = await getPermissionStatus();
+        const permission = await getPermission();
         const plans = preferences.remindersEnabled ? buildReminderPlans(preferences) : [];
         const existing = await getManagedNotifications(WEEKLY_REMINDER_KIND);
 
-        if (permissionStatus !== "granted" || plans.length === 0) {
+        if (permission.status !== "granted" || plans.length === 0) {
           await cancelNotifications(existing);
-          return { permissionStatus, scheduledCount: 0 };
+          return { permission, scheduledCount: 0 };
         }
 
         await ensureReminderChannel();
@@ -296,7 +335,7 @@ export function createLocalNotifications(nativeApi: LocalNotificationsNativeApi)
         }
 
         await cancelNotifications(existing.filter((notification) => !desiredIdentifiers.has(notification.identifier)));
-        return { permissionStatus, scheduledCount: plans.length };
+        return { permission, scheduledCount: plans.length };
       });
     },
 
