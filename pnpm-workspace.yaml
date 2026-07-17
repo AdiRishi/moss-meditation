@@ -5,6 +5,9 @@ packages:
 
 enableGlobalVirtualStore: false
 
+overrides:
+  expo-updates-interface: 57.0.1
+
 allowBuilds:
   "@shopify/react-native-skia": true
   esbuild: true
