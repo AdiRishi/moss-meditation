@@ -1,5 +1,28 @@
 # Release Notes
 
+## v1.4.0 - 2026-07-17
+
+### More control over gentle notifications
+
+Choose how Moss lets you know a session has ended, independently from practice reminders. Progress also appears reliably when you first visit.
+
+### Highlights
+
+- Control background session-completion sounds separately from practice reminders.
+- Keep notification choices saved even when device permission is unavailable, with clearer guidance for adjusting device settings.
+
+### Fixes
+
+- Progress data now appears reliably on the first visit.
+
+### Internal Changes
+
+- Rebuilt release preparation with a reviewable workflow that prepares from main while keeping deployment to the release branch manual.
+
+### Testing Notes
+
+- Automated coverage was updated for notification permissions, scheduling, independent completion and reminder preferences, onboarding, settings, and meditation state.
+
 ## v1.3.1 - 2026-07-17
 
 ### A smoother Moss launch
