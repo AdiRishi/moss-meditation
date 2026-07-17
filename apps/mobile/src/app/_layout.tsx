@@ -1,3 +1,4 @@
+import { Observe, ObserveRoot } from "expo-observe";
 import type { ErrorBoundaryProps } from "expo-router";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -14,6 +15,13 @@ import { useMeditation } from "@/providers/meditation-provider";
 import { GenericErrorScreen } from "@/screens/error/generic-error-screen";
 import { configureForegroundNotificationHandling } from "@/services/local-notifications";
 
+Observe.configure({
+  integrations: {
+    "expo-router": {
+      filteredParams: ["id"],
+    },
+  },
+});
 void SplashScreen.preventAutoHideAsync();
 configureForegroundNotificationHandling();
 
@@ -45,7 +53,7 @@ function RootNavigator() {
 
   useEffect(() => {
     if (isReady) {
-      void SplashScreen.hideAsync();
+      SplashScreen.hide();
     }
   }, [isReady]);
 
@@ -59,7 +67,7 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProviders>
@@ -68,3 +76,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default ObserveRoot.wrap(RootLayout);
