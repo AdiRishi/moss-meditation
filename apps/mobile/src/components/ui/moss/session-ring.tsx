@@ -8,12 +8,9 @@ import { easings } from "@/lib/motion";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-/** Maximum arc sweep with a 12-degree gap at full progress. */
-const MAX_SWEEP = 348 / 360;
-
 type SessionRingProps = {
   size: number;
-  /** Fraction of the ring drawn, 0..1. A value of 1 still leaves the ensō gap open. */
+  /** Fraction of the ring drawn, 0..1. */
   progress: number;
   strokeWidth?: number;
   /** Animate progress changes (including the initial draw from zero). */
@@ -61,7 +58,7 @@ export function SessionRing({
   }, [animated, clamped, drawDurationMs, drawn, live]);
 
   const arcProps = useAnimatedProps(() => {
-    const arcLength = drawn.get() * MAX_SWEEP * circumference;
+    const arcLength = drawn.get() * circumference;
     return {
       strokeDasharray: [arcLength, circumference],
       opacity: arcLength > 0.5 ? 1 : 0,

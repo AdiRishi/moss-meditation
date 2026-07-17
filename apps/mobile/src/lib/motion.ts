@@ -44,7 +44,7 @@ export const easings = {
   move: Easing.bezier(0.77, 0, 0.175, 1),
   /** Quiet ease-in-out for the brand's ambient breathing motion. */
   ambient: Easing.inOut(Easing.ease),
-  /** Ring draws share one deceleration so every ensō closes the same way. */
+  /** Ring draws share one deceleration so every arc closes the same way. */
   draw: Easing.out(Easing.cubic),
 } as const;
 

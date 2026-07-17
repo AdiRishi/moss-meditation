@@ -11,7 +11,7 @@ const MONTH_BUCKET_FORMATTER = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
 });
 
-/** Partial practice draws part of the circle; only a completed day closes it to the ensō gap. */
+/** Partial practice draws part of the circle; a completed day closes it fully. */
 const PARTIAL_SWEEP_LIMIT = 0.72;
 
 function bucketAccessibilityLabel(bucket: ProgressBucket, index: number, mode: ProgressMode) {

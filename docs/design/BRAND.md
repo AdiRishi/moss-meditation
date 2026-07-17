@@ -117,7 +117,7 @@ Use tabular numerals for timers, durations, streaks, and charts. Avoid bold disp
 
 ## Components
 
-- **Session ring:** the signature element. A hairline circular track that a moss arc draws closed as a session progresses; the arc always stops short of closing (a 12° ensō gap, "open enough to begin again"). Reused at every scale: around the breathing field, drawn in on completion, and as day rings in rhythm views. Planned days show an empty track; sitting draws the circle.
+- **Session ring:** the signature progress element. A hairline circular track that a moss arc draws as a session progresses, closing fully at completion. Reused at every scale: around the breathing field, drawn in on completion, and as day rings in rhythm views. Planned days show an empty track; sitting draws the circle. The open ensō remains the brand mark rather than the completion state.
 - **Living landscape:** the mountain-lake scene is rendered as a living shader, never a static image. It runs full-bleed and dissolves into the canvas — it is the ground of the page, not a picture in a frame. Silhouettes never move; only the atmosphere does.
 - **Breathing field:** a luminous moss orb whose radius breathes on the brand rhythm, with a soft ink-wash edge. It sits inside the session ring during practice and appears small as a quiet state marker elsewhere.
 - **Primary action:** Moss fill, Mist label, full pill, full-width when it closes a decision.
