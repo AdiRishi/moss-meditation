@@ -29,7 +29,15 @@ function ScheduleEditor() {
   const { error, preferences, saveNotificationPreferences } = useMeditation();
   const [draft, setDraft] = useState<AppPreferences>(preferences);
   const saveAction = useAsyncAction();
+  const [isDraftSaved, setIsDraftSaved] = useState(false);
   const [feedback, setFeedback] = useState<SettingsFeedbackState>(null);
+
+  // Any edit returns the save button to "Save" and clears stale outcome messages.
+  const editDraft = (update: (current: AppPreferences) => AppPreferences) => {
+    setIsDraftSaved(false);
+    setFeedback(null);
+    setDraft(update);
+  };
 
   const save = async () => {
     await saveAction.run(async () => {
@@ -43,9 +51,11 @@ function ScheduleEditor() {
         });
         return;
       }
-      setFeedback({ message: "Schedule saved.", tone: "success" });
+      setIsDraftSaved(true);
     });
   };
+
+  const saveState = saveAction.isPending ? "saving" : isDraftSaved ? "saved" : "idle";
 
   const visibleFeedback =
     (saveAction.error
@@ -56,7 +66,7 @@ function ScheduleEditor() {
   return (
     <SettingsFormLayout
       title="Schedule"
-      isSaving={saveAction.isPending}
+      saveState={saveState}
       onSave={() => void save()}
       feedback={
         visibleFeedback ? (
@@ -67,7 +77,7 @@ function ScheduleEditor() {
       <SettingsSection title="Practice days">
         <WeekdaySelector
           selected={draft.selectedWeekdays}
-          onChange={(selectedWeekdays) => setDraft((current) => ({ ...current, selectedWeekdays }))}
+          onChange={(selectedWeekdays) => editDraft((current) => ({ ...current, selectedWeekdays }))}
         />
       </SettingsSection>
 
@@ -78,19 +88,19 @@ function ScheduleEditor() {
           accessibilityLabel="sessions per day"
           minimum={1}
           maximum={3}
-          onChange={(sessionsPerDay) => setDraft((current) => ({ ...current, sessionsPerDay }))}
+          onChange={(sessionsPerDay) => editDraft((current) => ({ ...current, sessionsPerDay }))}
         />
       </SettingsSection>
 
       <SettingsSection title="Practice times">
         <PracticeTimeControls
           times={draft.practiceTimes}
-          onChange={(practiceTimes) => setDraft((current) => ({ ...current, practiceTimes }))}
+          onChange={(practiceTimes) => editDraft((current) => ({ ...current, practiceTimes }))}
         />
         <AddPracticeTimeButton
           disabled={draft.practiceTimes.length >= MAX_PRACTICE_TIMES}
           onPress={() =>
-            setDraft((current) => ({
+            editDraft((current) => ({
               ...current,
               practiceTimes: [
                 ...current.practiceTimes,

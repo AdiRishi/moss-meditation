@@ -1,13 +1,16 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { MossPrimaryButton } from "@/components/ui/moss/moss-button";
+import { MossButtonLabel, MossPrimaryButton } from "@/components/ui/moss/moss-button";
+import { MossIcon } from "@/components/ui/moss/moss-icon";
 import { ScreenHeader } from "@/components/ui/moss/screen-header";
 import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
 import { StickyFooterScrollView } from "@/components/ui/screen-containers/sticky-footer-scroll-view";
 import { Typography } from "@/components/ui/typography";
+import { useThemeColors } from "@/hooks/use-theme-colors";
 import { cn } from "@/lib/cn";
+import { successHaptic } from "@/lib/haptics";
 import { crossfadeIn, crossfadeOut, glide } from "@/lib/motion";
 import { useMeditation } from "@/providers/meditation-provider";
 
@@ -46,26 +49,55 @@ export function SettingsScreenLayout({
   );
 }
 
+export type SettingsSaveState = "idle" | "saving" | "saved";
+
 type SettingsFormLayoutProps = {
   title: string;
   children: ReactNode;
   onSave: () => void;
-  isSaving?: boolean;
+  saveState?: SettingsSaveState;
   saveDisabled?: boolean;
   saveLabel?: string;
   feedback?: ReactNode;
 };
 
+/** The save button confirms its own outcome: label changes crossfade instead of snapping. */
+function SaveButtonContent({ state, idleLabel }: { state: SettingsSaveState; idleLabel: string }) {
+  const colors = useThemeColors();
+  const label = state === "saving" ? "Saving…" : state === "saved" ? "Saved" : idleLabel;
+
+  return (
+    <View className="h-6 w-full">
+      <Animated.View
+        key={state}
+        entering={crossfadeIn}
+        exiting={crossfadeOut}
+        className="absolute inset-0 flex-row items-center justify-center gap-1.5"
+      >
+        {state === "saved" ? <MossIcon name="check" size={16} tintColor={colors.accentForeground} /> : null}
+        <MossButtonLabel>{label}</MossButtonLabel>
+      </Animated.View>
+    </View>
+  );
+}
+
 export function SettingsFormLayout({
   title,
   children,
   onSave,
-  isSaving = false,
+  saveState = "idle",
   saveDisabled = false,
   saveLabel = "Save",
   feedback,
 }: SettingsFormLayoutProps) {
   const { reducedMotion } = useMeditation();
+  const isSaving = saveState === "saving";
+
+  useEffect(() => {
+    if (saveState === "saved") {
+      successHaptic();
+    }
+  }, [saveState]);
 
   return (
     <StickyFooterScrollView.Root>
@@ -82,10 +114,11 @@ export function SettingsFormLayout({
         <Animated.View layout={glide(reducedMotion)}>
           <MossPrimaryButton
             accessibilityState={{ busy: isSaving, disabled: isSaving || saveDisabled }}
+            accessibilityLabel={saveState === "saved" ? "Saved" : saveLabel}
             isDisabled={isSaving || saveDisabled}
             onPress={onSave}
           >
-            {isSaving ? "Saving…" : saveLabel}
+            <SaveButtonContent state={saveState} idleLabel={saveLabel} />
           </MossPrimaryButton>
         </Animated.View>
       </StickyFooterScrollView.Footer>

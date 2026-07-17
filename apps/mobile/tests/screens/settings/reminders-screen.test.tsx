@@ -63,10 +63,13 @@ describe("<RemindersScreen />", () => {
       store: new InMemoryMeditationStore({ preferences }),
     });
 
-    await findByText("Notifications are off in your device settings. Your choices here will apply once you allow them.");
+    await findByText(
+      "Notifications are off in your device settings. Your choices here will apply once you allow them.",
+    );
     fireEvent.press(getByText("Save"));
 
-    await findByText("Saved. To get notifications, allow them for Moss in your device settings.");
+    await findByText("Saved");
+    getByText("Notifications are off in your device settings. Your choices here will apply once you allow them.");
     expect(notifications.requestPermission).not.toHaveBeenCalled();
     await expect(store.loadPreferences()).resolves.toMatchObject({
       backgroundCompletionAlertsEnabled: true,
@@ -112,6 +115,7 @@ describe("<RemindersScreen />", () => {
     await findByText("Notification sounds are off in your device settings, so session endings will be silent.");
     fireEvent.press(getByText("Save"));
 
-    await findByText("Saved. Notification sounds are off in your device settings, so session endings will be silent.");
+    await findByText("Saved");
+    getByText("Notification sounds are off in your device settings, so session endings will be silent.");
   });
 });

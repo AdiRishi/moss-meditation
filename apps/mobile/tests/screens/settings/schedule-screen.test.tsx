@@ -38,6 +38,7 @@ describe("<ScheduleScreen />", () => {
     fireEvent.press(getByLabelText("Add a practice time"));
     fireEvent.press(getByText("Save"));
 
+    await findByText("Saved");
     await waitFor(async () => {
       await expect(store.loadPreferences()).resolves.toMatchObject({
         selectedWeekdays: [1, 2, 3, 4, 5, 6],

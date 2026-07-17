@@ -1,4 +1,5 @@
 import { Button, type ButtonRootProps } from "heroui-native";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 import { buttonPressAnimation, reducedButtonPressAnimation } from "@/lib/motion";
@@ -7,8 +8,17 @@ import { useReducedMotionPreference } from "@/providers/meditation-provider";
 type ScaleHighlightButtonProps = Extract<ButtonRootProps, { feedbackVariant?: "scale-highlight" }>;
 
 type MossButtonProps = Omit<ScaleHighlightButtonProps, "children" | "feedbackVariant"> & {
-  children: string;
+  /** Strings get the standard label styling; nodes render as-is for custom content. */
+  children: ReactNode;
 };
+
+export function MossButtonLabel({ children, className }: { children: ReactNode; className?: string }) {
+  return <Button.Label className={cn("font-sans text-base font-medium", className)}>{children}</Button.Label>;
+}
+
+function buttonContent(children: ReactNode) {
+  return typeof children === "string" ? <MossButtonLabel>{children}</MossButtonLabel> : children;
+}
 
 export function MossPrimaryButton({ children, className, ...props }: MossButtonProps) {
   const reducedMotion = useReducedMotionPreference();
@@ -22,7 +32,7 @@ export function MossPrimaryButton({ children, className, ...props }: MossButtonP
       accessibilityRole="button"
       {...props}
     >
-      <Button.Label className="font-sans text-base font-medium">{children}</Button.Label>
+      {buttonContent(children)}
     </Button>
   );
 }
@@ -39,7 +49,7 @@ export function MossSecondaryButton({ children, className, ...props }: MossButto
       accessibilityRole="button"
       {...props}
     >
-      <Button.Label className="font-sans text-base font-medium">{children}</Button.Label>
+      {buttonContent(children)}
     </Button>
   );
 }
@@ -56,7 +66,7 @@ export function MossDangerButton({ children, className, ...props }: MossButtonPr
       accessibilityRole="button"
       {...props}
     >
-      <Button.Label className="font-sans text-base font-medium">{children}</Button.Label>
+      {buttonContent(children)}
     </Button>
   );
 }

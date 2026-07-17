@@ -30,7 +30,15 @@ function RemindersEditor() {
   const { error, notificationPermission, preferences, saveNotificationPreferences } = useMeditation();
   const [draft, setDraft] = useState<AppPreferences>(preferences);
   const saveAction = useAsyncAction();
+  const [isDraftSaved, setIsDraftSaved] = useState(false);
   const [feedback, setFeedback] = useState<SettingsFeedbackState>(null);
+
+  // Any edit returns the save button to "Save" and clears stale outcome messages.
+  const editDraft = (update: (current: AppPreferences) => AppPreferences) => {
+    setIsDraftSaved(false);
+    setFeedback(null);
+    setDraft(update);
+  };
 
   const openDeviceSettings = async () => {
     try {
@@ -58,28 +66,20 @@ function RemindersEditor() {
         return;
       }
 
-      if (result.status === "disabled") {
-        setFeedback({ message: "Saved. Notifications are turned off.", tone: "success" });
-      } else if (result.status === "permission-denied") {
+      // Permission and sound limitations already have standing banners on this
+      // screen, so the only outcome that still needs words is quiet hours
+      // swallowing every reminder.
+      if (result.status === "no-scheduled-times") {
         setFeedback({
-          message: "Saved. To get notifications, allow them for Moss in your device settings.",
+          message: "All of your reminders fall within quiet hours right now, so none are scheduled.",
           tone: "muted",
         });
-      } else if (result.status === "sound-disabled") {
-        setFeedback({
-          message: "Saved. Notification sounds are off in your device settings, so session endings will be silent.",
-          tone: "muted",
-        });
-      } else if (result.status === "no-scheduled-times") {
-        setFeedback({
-          message: "Saved. All of your reminders currently fall within quiet hours, so none are scheduled.",
-          tone: "muted",
-        });
-      } else {
-        setFeedback({ message: "Notification settings saved.", tone: "success" });
       }
+      setIsDraftSaved(true);
     });
   };
+
+  const saveState = saveAction.isPending ? "saving" : isDraftSaved ? "saved" : "idle";
 
   const visibleFeedback =
     (saveAction.error
@@ -90,7 +90,7 @@ function RemindersEditor() {
   return (
     <SettingsFormLayout
       title="Notifications"
-      isSaving={saveAction.isPending}
+      saveState={saveState}
       onSave={() => void save()}
       feedback={
         visibleFeedback ? (
@@ -104,7 +104,7 @@ function RemindersEditor() {
           icon="sound"
           label="Background completion sound"
           onChange={(backgroundCompletionAlertsEnabled) =>
-            setDraft((current) => ({ ...current, backgroundCompletionAlertsEnabled }))
+            editDraft((current) => ({ ...current, backgroundCompletionAlertsEnabled }))
           }
           value="Plays your completion sound when Moss is in the background"
         />
@@ -115,7 +115,7 @@ function RemindersEditor() {
           enabled={draft.remindersEnabled}
           icon="bell"
           label="Practice reminders"
-          onChange={(remindersEnabled) => setDraft((current) => ({ ...current, remindersEnabled }))}
+          onChange={(remindersEnabled) => editDraft((current) => ({ ...current, remindersEnabled }))}
           value="A notification before each practice time"
         />
       </SettingsSection>
@@ -147,7 +147,7 @@ function RemindersEditor() {
         <ReminderTimeControls
           enabled={draft.remindersEnabled}
           times={draft.practiceTimes}
-          onChange={(practiceTimes) => setDraft((current) => ({ ...current, practiceTimes }))}
+          onChange={(practiceTimes) => editDraft((current) => ({ ...current, practiceTimes }))}
         />
       </SettingsSection>
 
@@ -156,7 +156,7 @@ function RemindersEditor() {
           enabled={draft.remindersEnabled}
           startMinute={draft.quietHours.startMinute}
           endMinute={draft.quietHours.endMinute}
-          onChange={(quietHours) => setDraft((current) => ({ ...current, quietHours }))}
+          onChange={(quietHours) => editDraft((current) => ({ ...current, quietHours }))}
         />
       </SettingsSection>
 

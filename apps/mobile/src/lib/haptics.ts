@@ -5,3 +5,9 @@ export function impactHaptic() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
   }
 }
+
+export function successHaptic() {
+  if (process.env.EXPO_OS === "ios") {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+  }
+}

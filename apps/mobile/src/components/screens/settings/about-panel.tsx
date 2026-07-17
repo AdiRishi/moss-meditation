@@ -21,8 +21,8 @@ export function AboutPanel({ version }: { version: string }) {
       </View>
 
       <Typography variant="small" tone="muted" align="center" className="px-4">
-        Moss is a small meditation timer for keeping a steady daily practice. There are no accounts, streaks, or
-        feeds. Just your schedule, a timer, and a bell.
+        Moss is a small meditation timer for keeping a steady daily practice. There are no accounts, streaks, or feeds.
+        Just your schedule, a timer, and a bell.
       </Typography>
 
       <AppVersionLabel version={version} />
