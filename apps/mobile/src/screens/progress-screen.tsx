@@ -18,7 +18,12 @@ export function ProgressScreen() {
   const router = useRouter();
   const { completedSessions, error, isReady, preferences, refresh } = useMeditation();
   const [mode, setMode] = useState<ProgressMode>("week");
+  const [animatePeriodChanges, setAnimatePeriodChanges] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  function changeMode(nextMode: ProgressMode) {
+    setAnimatePeriodChanges(true);
+    setMode(nextMode);
+  }
   useFocusEffect(
     useCallback(() => {
       setNowMs(Date.now());
@@ -43,7 +48,7 @@ export function ProgressScreen() {
         </Typography>
       </View>
 
-      <ProgressPeriodControl mode={mode} onChange={setMode} />
+      <ProgressPeriodControl mode={mode} onChange={changeMode} />
 
       {!isReady ? (
         <PracticeStateCard title="Preparing your rhythm…" message="Just a moment." />
@@ -55,9 +60,7 @@ export function ProgressScreen() {
           onAction={() => void refresh()}
         />
       ) : (
-        // Keyed remount fades the new period's data in; no exiting, so the
-        // outgoing block never holds layout and double-stacks the page.
-        <Animated.View key={mode} entering={crossfadeIn} className="gap-12">
+        <Animated.View key={mode} entering={animatePeriodChanges ? crossfadeIn : undefined} className="gap-12">
           <PracticeRhythm buckets={summary.buckets} mode={mode} />
           <ProgressStats sessions={summary.sessions} minutes={summary.minutes} dayRhythm={summary.dayRhythm} />
           {summary.sessions > 0 ? (
