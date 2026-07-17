@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { View } from "react-native";
-import Animated, { useAnimatedProps, useSharedValue, withTiming, Easing } from "react-native-reanimated";
+import Animated, { useAnimatedProps, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 
 import { useThemeColors } from "@/hooks/use-theme-colors";
+import { easings } from "@/lib/motion";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -17,6 +18,11 @@ type SessionRingProps = {
   strokeWidth?: number;
   /** Animate progress changes (including the initial draw from zero). */
   animated?: boolean;
+  /**
+   * After the first draw, apply live countdown ticks without continuously
+   * repainting the SVG between them.
+   */
+  live?: boolean;
   drawDurationMs?: number;
   arcColor?: string;
   trackColor?: string;
@@ -28,6 +34,7 @@ export function SessionRing({
   progress,
   strokeWidth = 2,
   animated = false,
+  live = false,
   drawDurationMs = 450,
   arcColor,
   trackColor,
@@ -36,16 +43,22 @@ export function SessionRing({
   const colors = useThemeColors();
   const clamped = Math.min(Math.max(progress, 0), 1);
   const drawn = useSharedValue(animated ? 0 : clamped);
+  const firstDraw = useRef(true);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
   useEffect(() => {
-    if (animated) {
-      drawn.set(withTiming(clamped, { duration: drawDurationMs, easing: Easing.out(Easing.cubic) }));
-    } else {
+    if (!animated) {
       drawn.set(clamped);
+      return;
     }
-  }, [animated, clamped, drawDurationMs, drawn]);
+    if (live && !firstDraw.current) {
+      drawn.set(clamped);
+    } else {
+      drawn.set(withTiming(clamped, { duration: drawDurationMs, easing: easings.draw }));
+      firstDraw.current = false;
+    }
+  }, [animated, clamped, drawDurationMs, drawn, live]);
 
   const arcProps = useAnimatedProps(() => {
     const arcLength = drawn.get() * MAX_SWEEP * circumference;

@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
 import { PracticeRhythm } from "@/components/screens/progress/practice-rhythm";
 import { PracticeStateCard } from "@/components/screens/progress/practice-state-card";
@@ -10,6 +11,7 @@ import { ProgressStats } from "@/components/screens/progress/progress-stats";
 import { StandardScrollView } from "@/components/ui/screen-containers/standard-scroll-view";
 import { Typography } from "@/components/ui/typography";
 import { buildProgressSummary, type ProgressMode } from "@/domain/progress";
+import { crossfadeIn } from "@/lib/motion";
 import { useMeditation } from "@/providers/meditation-provider";
 
 export function ProgressScreen() {
@@ -53,7 +55,9 @@ export function ProgressScreen() {
           onAction={() => void refresh()}
         />
       ) : (
-        <View className="gap-12">
+        // Keyed remount fades the new period's data in; no exiting, so the
+        // outgoing block never holds layout and double-stacks the page.
+        <Animated.View key={mode} entering={crossfadeIn} className="gap-12">
           <PracticeRhythm buckets={summary.buckets} mode={mode} />
           <ProgressStats sessions={summary.sessions} minutes={summary.minutes} dayRhythm={summary.dayRhythm} />
           {summary.sessions > 0 ? (
@@ -73,7 +77,7 @@ export function ProgressScreen() {
               showArtwork
             />
           )}
-        </View>
+        </Animated.View>
       )}
     </StandardScrollView>
   );

@@ -24,7 +24,8 @@ export function TimePickerSheet({ practiceTime, onChange, onClose }: TimePickerS
   return (
     <Modal
       visible
-      animationType={reducedMotion ? "none" : "slide"}
+      // Reduced motion swaps the slide for a fade rather than a hard cut.
+      animationType={reducedMotion ? "fade" : "slide"}
       presentationStyle="formSheet"
       onRequestClose={onClose}
     >

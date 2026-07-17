@@ -3,14 +3,16 @@ import { useIsFocused } from "expo-router/react-navigation";
 import { useEffect } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import {
-  Easing,
   cancelAnimation,
   useDerivedValue,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { useUniwind } from "uniwind";
+
+import { durations, easings } from "@/lib/motion";
 
 import { hexToVec3, type Vec3 } from "./color";
 import { useShaderClock } from "./use-shader-clock";
@@ -18,6 +20,8 @@ import { useShaderClock } from "./use-shader-clock";
 type BreathingFieldProps = {
   reducedMotion: boolean;
   ending: boolean;
+  /** A paused session lets the orb exhale to rest instead of breathing on. */
+  paused?: boolean;
   size?: number;
 };
 
@@ -116,40 +120,52 @@ const DARK_FIELD: FieldPalette = {
 
 const MAX_FIELD_SIZE = 330;
 // Inhale + exhale = 2.8s, inside the brand's 2.4–3.2s breathing loop.
-const HALF_BREATH_MS = 1_400;
+const HALF_BREATH_MS = durations.halfBreath;
+// The loop's floor: the orb's resting radius between breaths.
+const BREATH_REST = 0.5;
 const RESOLUTION_SCALE = 0.6;
 
-export function BreathingField({ reducedMotion, ending, size }: BreathingFieldProps) {
+export function BreathingField({ reducedMotion, ending, paused = false, size }: BreathingFieldProps) {
   const { theme } = useUniwind();
   const { width } = useWindowDimensions();
   // The Progress tab stays mounted behind other tabs: stop breathing and
   // freeze the clock whenever the field is off-screen.
   const isFocused = useIsFocused();
-  const active = !reducedMotion && isFocused;
-  const breath = useSharedValue(0.5);
+  const active = !reducedMotion && isFocused && !paused;
+  const breath = useSharedValue(BREATH_REST);
   const dim = useSharedValue(ending ? 1 : 0);
   const time = useShaderClock({ fps: 30, enabled: active, startAt: 23 });
   const fieldSize = size ?? Math.min(MAX_FIELD_SIZE, width - 48);
 
   useEffect(() => {
     cancelAnimation(breath);
-    if (!active) {
-      breath.set(0.5);
+    if (reducedMotion) {
+      breath.set(BREATH_REST);
       return;
     }
-    breath.set(withRepeat(withTiming(1, { duration: HALF_BREATH_MS, easing: Easing.inOut(Easing.ease) }), -1, true));
+    if (!isFocused || paused) {
+      // Exhale to rest from wherever the breath was — a snap mid-inhale
+      // reads as a glitch when the orb is on screen.
+      breath.set(withTiming(BREATH_REST, { duration: durations.settle, easing: easings.ambient }));
+      return;
+    }
+    // Settle to the loop's floor first so the repeat always swings the full
+    // rest-to-full range, even when resuming from a mid-glide value.
+    breath.set(
+      withSequence(
+        withTiming(BREATH_REST, { duration: 400, easing: easings.ambient }),
+        withRepeat(withTiming(1, { duration: HALF_BREATH_MS, easing: easings.ambient }), -1, true),
+      ),
+    );
     return () => cancelAnimation(breath);
-  }, [breath, active]);
+  }, [breath, isFocused, paused, reducedMotion]);
 
   useEffect(() => {
-    dim.set(
-      reducedMotion
-        ? ending
-          ? 1
-          : 0
-        : withTiming(ending ? 1 : 0, { duration: 900, easing: Easing.inOut(Easing.ease) }),
-    );
-  }, [dim, ending, reducedMotion]);
+    // Resting is a shallow dim; the ending is a deep one. Both are mostly an
+    // alpha cue, so reduced motion keeps a shortened fade instead of a cut.
+    const target = ending ? 1 : paused ? 0.35 : 0;
+    dim.set(withTiming(target, { duration: reducedMotion ? 400 : durations.settle, easing: easings.ambient }));
+  }, [dim, ending, paused, reducedMotion]);
 
   const palette = theme === "dark" ? DARK_FIELD : LIGHT_FIELD;
   const canvasSize = Math.max(1, Math.round(fieldSize * RESOLUTION_SCALE));

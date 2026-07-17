@@ -51,9 +51,9 @@ function RootNavigator() {
 
   return (
     <MeditationDataBoundary>
-      <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? "none" : "fade" }}>
-        <Stack.Screen name="meditation" options={{ gestureEnabled: false }} />
-        <Stack.Screen name="session-complete" options={{ gestureEnabled: false }} />
+      <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? "fade" : "default" }}>
+        <Stack.Screen name="meditation" options={{ animation: "fade", gestureEnabled: false }} />
+        <Stack.Screen name="session-complete" options={{ animation: "fade", gestureEnabled: false }} />
       </Stack>
     </MeditationDataBoundary>
   );
