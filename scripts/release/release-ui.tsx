@@ -456,8 +456,6 @@ function DecisionInput({ onCancel, onConfirm }: { onCancel: () => void; onConfir
 }
 
 function CompletionPanel({ dryRun, plan }: { dryRun: boolean; plan?: ReleasePlan }): React.JSX.Element {
-  const branch = plan?.context.branch;
-
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={2} paddingY={1}>
       <Text color="green" bold>
@@ -468,13 +466,12 @@ function CompletionPanel({ dryRun, plan }: { dryRun: boolean; plan?: ReleasePlan
           ? "The repository is untouched."
           : "The release commit and annotated tag are ready to leave the observatory."}
       </Text>
-      {!dryRun && branch === "main" ? (
+      {!dryRun ? (
         <>
-          <Text dimColor>Next: git push origin main</Text>
-          <Text dimColor>Deploy: git push origin HEAD:release --follow-tags</Text>
+          <Text dimColor>Next: git push origin main --follow-tags</Text>
+          <Text dimColor>Move the release branch when you are ready to deploy.</Text>
         </>
       ) : null}
-      {!dryRun && branch === "release" ? <Text dimColor>Next: git push origin release --follow-tags</Text> : null}
     </Box>
   );
 }

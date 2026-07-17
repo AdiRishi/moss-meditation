@@ -97,12 +97,15 @@ Prepare and review a release from a clean `main` branch:
 ```bash
 pnpm release:prepare --dry-run
 pnpm release:prepare
-git push origin main
-git push origin HEAD:release --follow-tags
+git push origin main --follow-tags
 ```
 
-The script also accepts the `release` branch directly; from there, push with
-`git push origin release --follow-tags`.
+Release preparation never changes the `release` branch. When the release is ready to deploy, move the remote
+branch to the prepared commit explicitly:
+
+```bash
+git push origin main:release
+```
 
 Use `pnpm release:prepare --offline` to prepare from conventional commits when Codex analysis is unavailable.
 
