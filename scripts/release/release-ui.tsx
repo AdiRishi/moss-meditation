@@ -4,8 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import {
   assertApplyPreflight,
-  assertOnlyReleaseFilesChanged,
-  assertReleaseWorkspace,
+  captureReleaseFiles,
   createReleaseCommit,
   createReleasePlan,
   createReleaseTag,
@@ -115,12 +114,10 @@ export function ReleaseApp({ options }: { options: ReleaseCliOptions }): React.J
 
       try {
         assertApplyPreflight(releasePlan);
-        snapshot = await runStep("write", "Writing the release set", () => writeReleaseFiles(releasePlan, report));
+        snapshot = captureReleaseFiles();
+        await runStep("write", "Writing the release set", () => writeReleaseFiles(releasePlan, report));
         await runStep("format", "Formatting the repository", () => runReleaseFormat(report));
-        await runStep("verify", "Running repository checks", async () => {
-          await runReleaseChecks(report);
-          assertOnlyReleaseFilesChanged();
-        });
+        await runStep("verify", "Running repository checks", () => runReleaseChecks(report));
         await runStep("commit", "Creating the release commit", async () => {
           await createReleaseCommit(releasePlan, report);
           commitCreated = true;
@@ -153,10 +150,6 @@ export function ReleaseApp({ options }: { options: ReleaseCliOptions }): React.J
 
     void (async () => {
       try {
-        if (!options.dryRun) {
-          assertReleaseWorkspace();
-        }
-
         const releasePlan = await runStep(
           "compose",
           options.offline

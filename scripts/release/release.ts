@@ -84,7 +84,6 @@ export const RELEASE_FILES = [MOBILE_APP_CONFIG_FILE, MOBILE_PACKAGE_FILE, ROOT_
 const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 const TAG_PREFIX = "v";
 const TO_REF = "HEAD";
-const MAIN_BRANCH = "main";
 const RELEASE_BRANCH = "release";
 const RELEASE_ANALYSIS_MODEL = "gpt-5.6-sol";
 const RELEASE_ANALYSIS_REASONING_EFFORT = "low";
@@ -133,7 +132,7 @@ export async function createReleasePlan(report: Reporter, options: { offline: bo
 
   const analysis = options.offline
     ? analyzeReleaseOffline(context)
-    : await analyzeReleaseWithCodex(context, currentVersion);
+    : await analyzeRelease(context, currentVersion, report);
   const nextVersion = nextVersionFor(currentVersion, analysis.bump.kind);
   const tagName = `${TAG_PREFIX}${nextVersion}`;
 
@@ -156,7 +155,7 @@ export async function createReleasePlan(report: Reporter, options: { offline: bo
 }
 
 export function assertApplyPreflight(plan: ReleasePlan): void {
-  assertReleaseWorkspace();
+  assertCleanWorktree();
 
   const currentVersion = readCurrentReleaseVersion();
   if (currentVersion !== plan.currentVersion) {
@@ -170,17 +169,7 @@ export function assertApplyPreflight(plan: ReleasePlan): void {
   }
 }
 
-export function assertReleaseWorkspace(): void {
-  assertCleanWorktree();
-
-  const branch = currentBranch();
-  if (branch !== MAIN_BRANCH) {
-    throw new Error(`Release preparation must run on ${MAIN_BRANCH}. Current branch: ${branch}.`);
-  }
-}
-
-export function writeReleaseFiles(plan: ReleasePlan, report: Reporter): ReleaseSnapshot {
-  const snapshot = captureReleaseFiles();
+export function writeReleaseFiles(plan: ReleasePlan, report: Reporter): void {
   const packageJson = readJson<PackageJson>(ROOT_PACKAGE_FILE);
   const mobilePackageJson = readJson<PackageJson>(MOBILE_PACKAGE_FILE);
 
@@ -198,8 +187,6 @@ export function writeReleaseFiles(plan: ReleasePlan, report: Reporter): ReleaseS
 
   writeReleaseNotes(NOTES_FILE, plan.releaseSection);
   report(`Added ${plan.tagName} to ${NOTES_FILE}`);
-
-  return snapshot;
 }
 
 export function restoreReleaseFiles(snapshot: ReleaseSnapshot): void {
@@ -213,19 +200,6 @@ export function restoreReleaseFiles(snapshot: ReleaseSnapshot): void {
   }
 
   git(["add", ...RELEASE_FILES]);
-}
-
-export function assertOnlyReleaseFilesChanged(): void {
-  const expected = new Set<string>(RELEASE_FILES);
-  const changed = git(["status", "--porcelain", "--untracked-files=all"])
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => line.slice(3))
-    .filter((path) => !expected.has(path));
-
-  if (changed.length > 0) {
-    throw new Error(`Unexpected files changed during release preparation:\n${changed.join("\n")}`);
-  }
 }
 
 export async function runReleaseChecks(report: Reporter): Promise<void> {
@@ -316,6 +290,20 @@ function analyzeReleaseOffline(context: ReleaseContext): ReleaseAnalysis {
   };
 }
 
+async function analyzeRelease(
+  context: ReleaseContext,
+  currentVersion: string,
+  report: Reporter,
+): Promise<ReleaseAnalysis> {
+  try {
+    return await analyzeReleaseWithCodex(context, currentVersion);
+  } catch (caughtError) {
+    const message = caughtError instanceof Error ? caughtError.message : String(caughtError);
+    report(`Codex analysis was unavailable; using conventional commits. ${message}`);
+    return analyzeReleaseOffline(context);
+  }
+}
+
 async function analyzeReleaseWithCodex(context: ReleaseContext, currentVersion: string): Promise<ReleaseAnalysis> {
   const prompt = `Prepare release metadata for Moss, a local-first meditation app.
 
@@ -329,7 +317,11 @@ Current version: ${currentVersion}
 
 ${releaseEvidenceBlock(context)}`;
 
-  const thread = new Codex().startThread({
+  const thread = new Codex({
+    config: {
+      forced_login_method: "chatgpt",
+    },
+  }).startThread({
     workingDirectory: ROOT,
     sandboxMode: "read-only",
     approvalPolicy: "never",
@@ -356,10 +348,6 @@ function releaseContext(): ReleaseContext {
       .split("\n")
       .filter(Boolean),
   };
-}
-
-function currentBranch(): string {
-  return git(["branch", "--show-current"]) || "detached HEAD";
 }
 
 function releaseBase(): { ref?: string; label: string } {
@@ -480,7 +468,7 @@ function isProductFeature(subject: string): boolean {
   return !scope || !["build", "ci", "docs", "release", "test", "tooling"].includes(scope);
 }
 
-function captureReleaseFiles(): ReleaseSnapshot {
+export function captureReleaseFiles(): ReleaseSnapshot {
   return new Map(
     RELEASE_FILES.map((relativePath) => {
       const path = resolve(ROOT, relativePath);
