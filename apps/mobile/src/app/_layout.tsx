@@ -1,3 +1,4 @@
+import { ObserveRoot, useObserve } from "expo-observe";
 import type { ErrorBoundaryProps } from "expo-router";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -42,12 +43,14 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 
 function RootNavigator() {
   const { isReady, reducedMotion } = useMeditation();
+  const { markInteractive } = useObserve();
 
   useEffect(() => {
     if (isReady) {
       void SplashScreen.hideAsync();
+      markInteractive();
     }
-  }, [isReady]);
+  }, [isReady, markInteractive]);
 
   return (
     <MeditationDataBoundary>
@@ -59,7 +62,7 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProviders>
@@ -68,3 +71,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default ObserveRoot.wrap(RootLayout);
