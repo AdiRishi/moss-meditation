@@ -92,13 +92,17 @@ pnpm android
 
 Moss uses an annotated `v*` tag and `RELEASE_NOTES.md` as its release history. The interactive release command analyzes commits since the latest tag, recommends the smallest safe semantic version bump, generates user-facing notes, synchronizes the root package, mobile package, and Expo app versions, runs repository checks, and creates the release commit and tag.
 
-Prepare and review a release from a clean `release` branch:
+Prepare and review a release from a clean `main` branch:
 
 ```bash
 pnpm release:prepare --dry-run
 pnpm release:prepare
-git push origin release --follow-tags
+git push origin main
+git push origin HEAD:release --follow-tags
 ```
+
+The script also accepts the `release` branch directly; from there, push with
+`git push origin release --follow-tags`.
 
 Use `pnpm release:prepare --offline` to prepare from conventional commits when Codex analysis is unavailable.
 

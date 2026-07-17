@@ -35,6 +35,7 @@ export type ReleaseContext = {
   baseRef?: string;
   baseLabel: string;
   toRef: string;
+  branch: string;
   commits: ReleaseCommit[];
   diffStat: string;
   changedFiles: string[];
@@ -84,6 +85,7 @@ export const RELEASE_FILES = [MOBILE_APP_CONFIG_FILE, MOBILE_PACKAGE_FILE, ROOT_
 const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 const TAG_PREFIX = "v";
 const TO_REF = "HEAD";
+const PRIMARY_BRANCH = "main";
 const RELEASE_BRANCH = "release";
 const RELEASE_ANALYSIS_MODEL = "gpt-5.6-sol";
 const RELEASE_ANALYSIS_REASONING_EFFORT = "low";
@@ -172,10 +174,10 @@ export function assertApplyPreflight(plan: ReleasePlan): void {
 export function assertReleaseWorkspace(): void {
   assertCleanWorktree();
 
-  const branch = git(["branch", "--show-current"]);
-  if (branch !== RELEASE_BRANCH) {
+  const branch = currentBranch();
+  if (branch !== PRIMARY_BRANCH && branch !== RELEASE_BRANCH) {
     throw new Error(
-      `Release preparation must run on the ${RELEASE_BRANCH} branch. Current branch: ${branch || "detached HEAD"}.`,
+      `Release preparation must run on ${PRIMARY_BRANCH} or ${RELEASE_BRANCH}. Current branch: ${branch}.`,
     );
   }
 }
@@ -351,12 +353,17 @@ function releaseContext(): ReleaseContext {
     baseRef: base.ref,
     baseLabel: base.label,
     toRef: TO_REF,
+    branch: currentBranch(),
     commits: parseReleaseCommits(commitOutput),
     diffStat: git(["diff", "--stat", ...diffRange]),
     changedFiles: git(["diff", "--name-only", ...diffRange])
       .split("\n")
       .filter(Boolean),
   };
+}
+
+function currentBranch(): string {
+  return git(["branch", "--show-current"]) || "detached HEAD";
 }
 
 function releaseBase(): { ref?: string; label: string } {
