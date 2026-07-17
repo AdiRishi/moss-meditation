@@ -1,5 +1,25 @@
 # Release Notes
 
+## v1.3.0 - 2026-07-17
+
+### Smoother motion throughout your practice
+
+Motion and transitions have been refined across the app for a smoother experience during setup, practice, completion, and progress review.
+
+### Highlights
+
+- Refined motion and transitions across the meditation experience.
+
+### Internal Changes
+
+- Added performance telemetry for the mobile app.
+- Configured the iOS submission workflow and enabled build caching.
+
+### Testing Notes
+
+- Added coverage for route performance observation and the launch screen.
+- Updated meditation screen and app-level component tests.
+
 ## v1.2.1 - 2026-07-16
 
 ### Release infrastructure updates
