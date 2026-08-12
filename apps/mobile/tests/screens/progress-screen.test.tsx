@@ -8,8 +8,7 @@ import type { CompletedSession } from "@/domain/meditation";
 import { ProgressScreen } from "@/screens/progress-screen";
 
 const mockPush = jest.fn();
-const JULY_BREAKDOWN_LABEL =
-  /^Minutes by week\. (.+) 1–7, 0 minutes; \1 8–14, 15 minutes; \1 15–17, 15 minutes$/;
+const JULY_BREAKDOWN_LABEL = /^Minutes by week\. (.+) 1–7, 0 minutes; \1 8–14, 15 minutes; \1 15–17, 15 minutes$/;
 
 jest.mock("expo-router", () => ({
   useFocusEffect: jest.fn(),
