@@ -1,5 +1,33 @@
 # Release Notes
 
+## v1.5.0 - 2026-08-14
+
+### Clearer progress and calmer settings
+
+Moss now makes monthly practice easier to understand, gives clearer feedback when settings are saved, and improves a few finishing details.
+
+### Highlights
+
+- See a clearer summary and breakdown of your monthly practice.
+- Get confirmation directly on the save button when settings are saved.
+- Read simpler, more informational wording throughout Settings.
+
+### Fixes
+
+- Completed session rings now close fully.
+- Completion sounds are easier to hear.
+
+### Internal Changes
+
+- Updated dependencies and lockfiles.
+- Improved Codex worktree setup.
+- Updated app icon configuration.
+- Updated documentation and support content.
+
+### Testing Notes
+
+- Updated progress and settings tests, including coverage for localized progress labels.
+
 ## v1.4.0 - 2026-07-17
 
 ### More control over gentle notifications
